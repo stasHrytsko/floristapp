@@ -1,15 +1,21 @@
 import { useState } from 'react'
 import StockPage from './pages/StockPage'
 import HistoryPage from './pages/HistoryPage'
+import OrdersPage from './pages/OrdersPage'
+import SuppliersPage from './pages/SuppliersPage'
 
 const TABS = [
   { id: 'stock', label: 'Остатки' },
   { id: 'history', label: 'История' },
+  { id: 'orders', label: 'Заказы' },
+  { id: 'suppliers', label: 'Поставщики' },
 ]
 
 const PAGE_TITLES = {
   stock: 'Остатки',
   history: 'История движения',
+  orders: 'Заказы',
+  suppliers: 'Поставщики',
 }
 
 export default function App() {
@@ -23,6 +29,8 @@ export default function App() {
       <main className="px-4 py-4 flex-1">
         {tab === 'stock' && <StockPage />}
         {tab === 'history' && <HistoryPage />}
+        {tab === 'orders' && <OrdersPage />}
+        {tab === 'suppliers' && <SuppliersPage />}
       </main>
       <nav className="sticky bottom-0 bg-white border-t border-gray-200 flex">
         {TABS.map((t) => (
