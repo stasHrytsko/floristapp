@@ -1,0 +1,37 @@
+import OrderCard from '../components/OrderCard'
+import { useOrders } from '../hooks/useOrders'
+
+export default function OrdersPage() {
+  const { orders, loading, error, refresh } = useOrders()
+
+  if (loading) {
+    return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
+  }
+
+  if (error) {
+    return (
+      <div className="text-center mt-10">
+        <p className="text-red-500 text-sm mb-3">{error}</p>
+        <button onClick={refresh} className="text-sm text-green-600 underline">
+          Повторить
+        </button>
+      </div>
+    )
+  }
+
+  if (orders.length === 0) {
+    return (
+      <p className="text-center text-gray-400 mt-10 text-sm">
+        Активных заказов нет
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {orders.map((order) => (
+        <OrderCard key={order.id} order={order} />
+      ))}
+    </div>
+  )
+}
