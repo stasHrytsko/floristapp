@@ -3,18 +3,21 @@ import StockPage from './pages/StockPage'
 import HistoryPage from './pages/HistoryPage'
 import OrdersPage from './pages/OrdersPage'
 import SuppliersPage from './pages/SuppliersPage'
+import DeliveryPage from './pages/DeliveryPage'
 
 const TABS = [
   { id: 'stock', label: 'Остатки' },
-  { id: 'history', label: 'История' },
+  { id: 'delivery', label: 'Поставка' },
   { id: 'orders', label: 'Заказы' },
+  { id: 'history', label: 'История' },
   { id: 'suppliers', label: 'Поставщики' },
 ]
 
 const PAGE_TITLES = {
   stock: 'Остатки',
-  history: 'История движения',
+  delivery: 'Новая поставка',
   orders: 'Заказы',
+  history: 'История движения',
   suppliers: 'Поставщики',
 }
 
@@ -28,8 +31,9 @@ export default function App() {
       </header>
       <main className="px-4 py-4 flex-1">
         {tab === 'stock' && <StockPage />}
-        {tab === 'history' && <HistoryPage />}
+        {tab === 'delivery' && <DeliveryPage />}
         {tab === 'orders' && <OrdersPage />}
+        {tab === 'history' && <HistoryPage />}
         {tab === 'suppliers' && <SuppliersPage />}
       </main>
       <nav className="sticky bottom-0 bg-white border-t border-gray-200 flex">
