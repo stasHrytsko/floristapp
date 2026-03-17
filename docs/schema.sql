@@ -13,6 +13,7 @@ create table suppliers (
 create table flowers (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
+  low_stock_threshold int not null default 5,
   created_at timestamptz default now()
 );
 
