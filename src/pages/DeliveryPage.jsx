@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useDelivery } from '../hooks/useDelivery'
+import { useAddFlower } from '../hooks/useAddFlower'
 
 const DEFECT_OPTIONS = [
   { value: '', label: 'Без брака' },
@@ -15,8 +16,12 @@ function newRow() {
 
 export default function DeliveryPage() {
   const { suppliers, loading: suppLoading } = useSuppliers()
-  const { flowers, loading: flowLoading } = useFlowerStock()
+  const { flowers, loading: flowLoading, refresh: refreshFlowers } = useFlowerStock()
   const { saveDelivery } = useDelivery()
+  const { addFlower } = useAddFlower()
+  const [newFlowerRowId, setNewFlowerRowId] = useState(null)
+  const [newFlowerName, setNewFlowerName] = useState('')
+  const [addingFlower, setAddingFlower] = useState(false)
 
   const [supplierId, setSupplierId] = useState('')
   const [deliveredAt, setDeliveredAt] = useState(new Date().toISOString().split('T')[0])
@@ -31,6 +36,21 @@ export default function DeliveryPage() {
 
   function addRow() {
     setRows((prev) => [...prev, newRow()])
+  }
+
+  async function handleAddFlower(rowId) {
+    setAddingFlower(true)
+    try {
+      const flower = await addFlower(newFlowerName)
+      await refreshFlowers()
+      updateRow(rowId, { flowerId: flower.id })
+      setNewFlowerRowId(null)
+      setNewFlowerName('')
+    } catch (err) {
+      setError(err.message || 'Ошибка добавления цветка')
+    } finally {
+      setAddingFlower(false)
+    }
   }
 
   function removeRow(id) {
@@ -129,19 +149,56 @@ export default function DeliveryPage() {
             )}
           </div>
 
-          <select
-            value={row.flowerId}
-            onChange={(e) => updateRow(row.id, { flowerId: e.target.value })}
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">Выберите цветок</option>
-            {flowers.map((f) => (
-              <option key={f.flower_id} value={f.flower_id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          {newFlowerRowId === row.id ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="text"
+                placeholder="Название цветка"
+                value={newFlowerName}
+                onChange={(e) => setNewFlowerName(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={addingFlower || !newFlowerName.trim()}
+                onClick={() => handleAddFlower(row.id)}
+                className="text-sm text-white bg-green-600 px-3 rounded-lg disabled:opacity-50"
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={() => { setNewFlowerRowId(null); setNewFlowerName('') }}
+                className="text-sm text-gray-400"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <select
+                value={row.flowerId}
+                onChange={(e) => updateRow(row.id, { flowerId: e.target.value })}
+                required
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Выберите цветок</option>
+                {flowers.map((f) => (
+                  <option key={f.flower_id} value={f.flower_id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setNewFlowerRowId(row.id)}
+                className="text-sm text-green-600 border border-green-600 px-3 rounded-lg whitespace-nowrap"
+              >
+                + Новый
+              </button>
+            </div>
+          )}
 
           <input
             type="number"

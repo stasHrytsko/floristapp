@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase'
 
+const DEFECT_RESOLUTION = {
+  'гнилой': 'возврат',
+  'не_тот_цвет': 'скидка',
+}
+
 export function useDelivery() {
   async function saveDelivery({ supplierId, deliveredAt, items }) {
     for (const item of items) {
@@ -17,13 +22,19 @@ export function useDelivery() {
 
       const { error: movErr } = await supabase
         .from('movements')
-        .insert({ type: 'поставка', flower_id: flowerId, batch_id: batch.id, quantity: goodQty })
+        .insert({ movement_type: 'поставка', flower_id: flowerId, batch_id: batch.id, quantity: goodQty })
       if (movErr) throw movErr
 
       if (defectType && defectQty > 0) {
         const { error: defErr } = await supabase
           .from('defects')
-          .insert({ batch_id: batch.id, type: defectType, quantity: defectQty })
+          .insert({
+            batch_id: batch.id,
+            flower_id: flowerId,
+            defect_type: defectType,
+            resolution: DEFECT_RESOLUTION[defectType] || 'возврат',
+            quantity: defectQty,
+          })
         if (defErr) throw defErr
       }
     }
