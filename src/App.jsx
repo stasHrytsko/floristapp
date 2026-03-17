@@ -8,7 +8,6 @@ import NewOrderPage from './pages/NewOrderPage'
 
 const TABS = [
   { id: 'stock', label: 'Остатки' },
-  { id: 'neworder', label: 'Заказ' },
   { id: 'delivery', label: 'Поставка' },
   { id: 'orders', label: 'Заказы' },
   { id: 'history', label: 'История' },
@@ -34,9 +33,9 @@ export default function App() {
       </header>
       <main className="px-4 py-4 flex-1">
         {tab === 'stock' && <StockPage />}
-        {tab === 'neworder' && <NewOrderPage />}
+        {tab === 'neworder' && <NewOrderPage onBack={() => setTab('orders')} />}
         {tab === 'delivery' && <DeliveryPage />}
-        {tab === 'orders' && <OrdersPage />}
+        {tab === 'orders' && <OrdersPage onNewOrder={() => setTab('neworder')} />}
         {tab === 'history' && <HistoryPage />}
         {tab === 'suppliers' && <SuppliersPage />}
       </main>

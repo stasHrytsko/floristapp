@@ -12,7 +12,7 @@ function formatDate(dateStr) {
 }
 
 export default function OrderCard({ order }) {
-  const { client_name, client_phone, delivery_type, status, ready_at, address, order_items = [] } = order
+  const { client_name, client_phone, delivery_type, delivery_address, status, ready_at, order_items = [] } = order
   const statusStyle = STATUS_STYLES[status] || 'bg-gray-100 text-gray-600'
   const isDelivery = delivery_type === 'доставка'
 
@@ -39,7 +39,7 @@ export default function OrderCard({ order }) {
       <div className="flex items-center gap-3 text-xs text-gray-400">
         <span>{isDelivery ? '🚚 доставка' : '🏪 самовывоз'}</span>
         {ready_at && <span>к {formatDate(ready_at)}</span>}
-        {isDelivery && address && <span className="truncate">{address}</span>}
+        {isDelivery && delivery_address && <span className="truncate">{delivery_address}</span>}
       </div>
     </div>
   )

@@ -19,9 +19,9 @@ export function useOrders() {
           client_name,
           client_phone,
           delivery_type,
+          delivery_address,
           status,
           ready_at,
-          address,
           order_items (
             quantity,
             flowers ( name )
