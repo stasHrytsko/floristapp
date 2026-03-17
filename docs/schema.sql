@@ -47,6 +47,28 @@ create table order_items (
   quantity int not null check (quantity > 0)
 );
 
+-- Поставки (с отслеживанием статуса)
+create table deliveries (
+  id uuid primary key default gen_random_uuid(),
+  supplier_id uuid references suppliers(id),
+  delivered_at date not null default current_date,
+  status text not null default 'оформлено' check (status in ('оформлено', 'оплачено', 'доставка', 'на складе')),
+  has_issues boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Позиции поставки
+create table delivery_items (
+  id uuid primary key default gen_random_uuid(),
+  delivery_id uuid references deliveries(id) on delete cascade not null,
+  flower_id uuid references flowers(id) not null,
+  quantity int not null check (quantity > 0),
+  reception_status text check (reception_status in ('ok', 'брак', 'не_тот_заказ')),
+  defect_qty int,
+  comment text,
+  batch_id uuid references batches(id)
+);
+
 -- Брак
 create table defects (
   id uuid primary key default gen_random_uuid(),
