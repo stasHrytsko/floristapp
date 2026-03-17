@@ -4,9 +4,11 @@ import HistoryPage from './pages/HistoryPage'
 import OrdersPage from './pages/OrdersPage'
 import SuppliersPage from './pages/SuppliersPage'
 import DeliveryPage from './pages/DeliveryPage'
+import NewOrderPage from './pages/NewOrderPage'
 
 const TABS = [
   { id: 'stock', label: 'Остатки' },
+  { id: 'neworder', label: 'Заказ' },
   { id: 'delivery', label: 'Поставка' },
   { id: 'orders', label: 'Заказы' },
   { id: 'history', label: 'История' },
@@ -15,6 +17,7 @@ const TABS = [
 
 const PAGE_TITLES = {
   stock: 'Остатки',
+  neworder: 'Новый заказ',
   delivery: 'Новая поставка',
   orders: 'Заказы',
   history: 'История движения',
@@ -31,6 +34,7 @@ export default function App() {
       </header>
       <main className="px-4 py-4 flex-1">
         {tab === 'stock' && <StockPage />}
+        {tab === 'neworder' && <NewOrderPage />}
         {tab === 'delivery' && <DeliveryPage />}
         {tab === 'orders' && <OrdersPage />}
         {tab === 'history' && <HistoryPage />}
