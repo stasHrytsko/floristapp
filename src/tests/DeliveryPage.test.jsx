@@ -5,10 +5,12 @@ import DeliveryPage from '../pages/DeliveryPage'
 vi.mock('../hooks/useSuppliers', () => ({ useSuppliers: vi.fn() }))
 vi.mock('../hooks/useFlowerStock', () => ({ useFlowerStock: vi.fn() }))
 vi.mock('../hooks/useDelivery', () => ({ useDelivery: vi.fn() }))
+vi.mock('../hooks/useAddFlower', () => ({ useAddFlower: vi.fn() }))
 
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useDelivery } from '../hooks/useDelivery'
+import { useAddFlower } from '../hooks/useAddFlower'
 
 const mockSuppliers = [{ id: '1', name: 'Розы опт', phone: '' }]
 const mockFlowers = [
@@ -20,6 +22,7 @@ function setup(saveDeliveryOverride) {
   useSuppliers.mockReturnValue({ suppliers: mockSuppliers, loading: false, error: null })
   useFlowerStock.mockReturnValue({ flowers: mockFlowers, loading: false, error: null, refresh: vi.fn() })
   useDelivery.mockReturnValue({ saveDelivery })
+  useAddFlower.mockReturnValue({ addFlower: vi.fn().mockResolvedValue({ id: '99', name: 'Новый' }) })
   return { saveDelivery }
 }
 
@@ -37,6 +40,7 @@ describe('DeliveryPage', () => {
     useSuppliers.mockReturnValue({ suppliers: [], loading: true, error: null })
     useFlowerStock.mockReturnValue({ flowers: [], loading: false, error: null, refresh: vi.fn() })
     useDelivery.mockReturnValue({ saveDelivery: vi.fn() })
+    useAddFlower.mockReturnValue({ addFlower: vi.fn() })
     render(<DeliveryPage />)
     expect(screen.getByText(/загрузка/i)).toBeDefined()
   })
