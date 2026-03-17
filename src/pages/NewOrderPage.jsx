@@ -6,7 +6,7 @@ function newItem() {
   return { id: Date.now() + Math.random(), flowerId: '', quantity: '' }
 }
 
-export default function NewOrderPage() {
+export default function NewOrderPage({ onBack }) {
   const { flowers, loading } = useFlowerStock()
   const { saveOrder } = useNewOrder()
 
@@ -72,6 +72,7 @@ export default function NewOrderPage() {
       setDeliveryType('самовывоз')
       setAddress('')
       setItems([newItem()])
+      if (onBack) setTimeout(onBack, 1200)
     } catch (err) {
       setError(err.message || 'Ошибка сохранения')
     } finally {

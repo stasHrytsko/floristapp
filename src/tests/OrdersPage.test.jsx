@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import OrdersPage from '../pages/OrdersPage'
 import OrderCard from '../components/OrderCard'
 
@@ -17,7 +17,7 @@ const mockOrders = [
     delivery_type: 'самовывоз',
     status: 'новый',
     ready_at: '2026-03-20',
-    address: null,
+    delivery_address: null,
     order_items: [
       { quantity: 5, flowers: { name: 'Роза' } },
       { quantity: 3, flowers: { name: 'Тюльпан' } },
@@ -30,7 +30,7 @@ const mockOrders = [
     delivery_type: 'доставка',
     status: 'в работе',
     ready_at: '2026-03-21',
-    address: 'ул. Ленина, 5',
+    delivery_address: 'ул. Ленина, 5',
     order_items: [],
   },
 ]
@@ -53,15 +53,23 @@ describe('OrdersPage', () => {
 
   it('показывает сообщение при пустом списке', () => {
     useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn() })
-    render(<OrdersPage />)
+    render(<OrdersPage onNewOrder={vi.fn()} />)
     expect(screen.getByText(/активных заказов нет/i)).toBeDefined()
   })
 
   it('рендерит карточки заказов', () => {
     useOrders.mockReturnValue({ orders: mockOrders, loading: false, error: null, refresh: vi.fn() })
-    render(<OrdersPage />)
+    render(<OrdersPage onNewOrder={vi.fn()} />)
     expect(screen.getByText('Анна')).toBeDefined()
     expect(screen.getByText('Мария')).toBeDefined()
+  })
+
+  it('вызывает onNewOrder при нажатии кнопки', () => {
+    const onNewOrder = vi.fn()
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn() })
+    render(<OrdersPage onNewOrder={onNewOrder} />)
+    fireEvent.click(screen.getByText(/новый заказ/i))
+    expect(onNewOrder).toHaveBeenCalledOnce()
   })
 })
 
