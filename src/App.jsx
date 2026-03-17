@@ -17,7 +17,7 @@ const TABS = [
 const PAGE_TITLES = {
   stock: 'Остатки',
   neworder: 'Новый заказ',
-  delivery: 'Новая поставка',
+  delivery: 'Поставки',
   orders: 'Заказы',
   history: 'История движения',
   suppliers: 'Поставщики',
