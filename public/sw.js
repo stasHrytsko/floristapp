@@ -1,4 +1,4 @@
-const CACHE_NAME = 'floristapp-v1'
+const CACHE_NAME = 'floristapp-v2'
 
 const STATIC_ASSETS = [
   '/',
