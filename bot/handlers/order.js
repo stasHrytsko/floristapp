@@ -1,8 +1,9 @@
 'use strict'
 
-const { getFlowerStock, saveOrder } = require('../lib/supabase')
+const { getFlowerStock, saveOrder, getActiveOrders, updateOrderStatus } = require('../lib/supabase')
 
 const STEPS = {
+  MENU: 'MENU',
   CLIENT_NAME: 'CLIENT_NAME',
   CLIENT_PHONE: 'CLIENT_PHONE',
   DELIVERY_TYPE: 'DELIVERY_TYPE',
@@ -12,6 +13,29 @@ const STEPS = {
   QUANTITY_INPUT: 'QUANTITY_INPUT',
   MORE_FLOWERS: 'MORE_FLOWERS',
   CONFIRM: 'CONFIRM',
+  ORDER_LIST: 'ORDER_LIST',
+  ORDER_STATUS: 'ORDER_STATUS',
+}
+
+// Самовывоз: новый → в работе → готов к выдаче → выдан
+// Доставка:  новый → в работе → готов к доставке → доставлен
+const STATUS_CHAIN = {
+  самовывоз: ['новый', 'в работе', 'готов к выдаче', 'выдан'],
+  доставка: ['новый', 'в работе', 'готов к доставке', 'доставлен'],
+}
+
+function getNextStatus(currentStatus, deliveryType) {
+  const chain = STATUS_CHAIN[deliveryType]
+  if (!chain) return null
+  const idx = chain.indexOf(currentStatus)
+  if (idx === -1 || idx === chain.length - 1) return null
+  return chain[idx + 1]
+}
+
+// ISO дата ГГГГ-ММ-ДД → ДД.ММ.ГГГГ
+function formatReadyAt(isoDate) {
+  const [yyyy, mm, dd] = isoDate.split('-')
+  return `${dd}.${mm}.${yyyy}`
 }
 
 const sessions = new Map()
@@ -30,10 +54,17 @@ const CANCEL_ROW = [{ text: '❌ Отмена', callback_data: 'no_cancel' }]
 
 async function startOrder(ctx) {
   const userId = ctx.from.id
-  setSession(userId, { step: STEPS.CLIENT_NAME, items: [], stock: [] })
-  await ctx.reply('📋 *Новый заказ*\n\nВведи имя клиента:', {
-    parse_mode: 'Markdown',
-    reply_markup: { inline_keyboard: [CANCEL_ROW] },
+  setSession(userId, { step: STEPS.MENU })
+  await ctx.reply('📋 Заказы:', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📋 Новый заказ', callback_data: 'no_menu_new' },
+          { text: '📂 Текущие заказы', callback_data: 'no_menu_list' },
+        ],
+        CANCEL_ROW,
+      ],
+    },
   })
 }
 
@@ -134,7 +165,106 @@ async function handleCallbackQuery(ctx) {
     return true
   }
 
-  // Тип получения
+  // ── Подменю ─────────────────────────────────────────────────────
+
+  if (data === 'no_menu_new' && session.step === STEPS.MENU) {
+    session.step = STEPS.CLIENT_NAME
+    session.items = []
+    session.stock = []
+    setSession(userId, session)
+    await ctx.answerCbQuery()
+    await ctx.editMessageText('📋 Новый заказ')
+    await ctx.reply('Введи имя клиента:', {
+      reply_markup: { inline_keyboard: [CANCEL_ROW] },
+    })
+    return true
+  }
+
+  if (data === 'no_menu_list' && session.step === STEPS.MENU) {
+    let orders
+    try {
+      orders = await getActiveOrders()
+    } catch {
+      await ctx.answerCbQuery()
+      await ctx.reply('Ошибка загрузки заказов. Попробуй ещё раз.')
+      return true
+    }
+    if (orders.length === 0) {
+      await ctx.answerCbQuery()
+      await ctx.editMessageText('Нет активных заказов.')
+      clearSession(userId)
+      return true
+    }
+    session.step = STEPS.ORDER_LIST
+    session.activeOrders = orders
+    setSession(userId, session)
+    await ctx.answerCbQuery()
+    const buttons = orders.map((o) => [
+      {
+        text: `${o.client_name} — ${formatReadyAt(o.ready_at)} (${o.status})`,
+        callback_data: `no_ord_${o.id}`,
+      },
+    ])
+    buttons.push(CANCEL_ROW)
+    await ctx.editMessageText('Активные заказы:', {
+      reply_markup: { inline_keyboard: buttons },
+    })
+    return true
+  }
+
+  // ── Выбор заказа из списка ───────────────────────────────────────
+
+  if (data.startsWith('no_ord_') && session.step === STEPS.ORDER_LIST) {
+    const orderId = data.slice(7)
+    const found = session.activeOrders.find((o) => o.id === orderId)
+    if (!found) {
+      await ctx.answerCbQuery('Заказ не найден.')
+      return true
+    }
+    const nextStatus = getNextStatus(found.status, found.delivery_type)
+    if (!nextStatus) {
+      await ctx.answerCbQuery('Это финальный статус.')
+      return true
+    }
+    session.step = STEPS.ORDER_STATUS
+    session.selectedOrderId = orderId
+    session.selectedClientName = found.client_name
+    session.nextStatus = nextStatus
+    setSession(userId, session)
+    await ctx.answerCbQuery()
+    await ctx.editMessageText(
+      `Заказ: ${found.client_name}\nТекущий статус: ${found.status}\nСледующий статус: ${nextStatus}`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: `→ ${nextStatus}`, callback_data: 'no_nst' }],
+            CANCEL_ROW,
+          ],
+        },
+      }
+    )
+    return true
+  }
+
+  // ── Подтверждение смены статуса ──────────────────────────────────
+
+  if (data === 'no_nst' && session.step === STEPS.ORDER_STATUS) {
+    await ctx.answerCbQuery()
+    try {
+      await updateOrderStatus(session.selectedOrderId, session.nextStatus)
+    } catch {
+      await ctx.reply('Ошибка обновления статуса. Попробуй ещё раз.')
+      return true
+    }
+    const clientName = session.selectedClientName
+    const newStatus = session.nextStatus
+    clearSession(userId)
+    await ctx.editMessageText(`✅ Статус заказа ${clientName} обновлён: ${newStatus}`)
+    return true
+  }
+
+  // ── Новый заказ: тип получения ───────────────────────────────────
+
   if (data.startsWith('no_dt_') && session.step === STEPS.DELIVERY_TYPE) {
     session.deliveryType = data.slice(6)
     await ctx.answerCbQuery()
@@ -155,7 +285,8 @@ async function handleCallbackQuery(ctx) {
     return true
   }
 
-  // Выбор цветка
+  // ── Выбор цветка ─────────────────────────────────────────────────
+
   if (data.startsWith('no_f_') && session.step === STEPS.FLOWER_SELECT) {
     const flowerId = data.slice(5)
     const flower = session.stock.find((f) => f.flower_id === flowerId)
@@ -176,7 +307,8 @@ async function handleCallbackQuery(ctx) {
     return true
   }
 
-  // Добавить ещё?
+  // ── Добавить ещё? ────────────────────────────────────────────────
+
   if (data === 'no_more_yes' && session.step === STEPS.MORE_FLOWERS) {
     session.step = STEPS.FLOWER_SELECT
     setSession(userId, session)
@@ -195,7 +327,8 @@ async function handleCallbackQuery(ctx) {
     return true
   }
 
-  // Подтвердить
+  // ── Подтвердить новый заказ ──────────────────────────────────────
+
   if (data === 'no_confirm' && session.step === STEPS.CONFIRM) {
     await ctx.answerCbQuery()
     await ctx.editMessageText('⏳ Сохраняю заказ...')
@@ -303,7 +436,6 @@ async function handleText(ctx) {
       flowerName: session.currentFlowerName,
       quantity: qty,
     })
-    // Уменьшаем доступный остаток в кеше (оптимистично)
     const flower = session.stock.find((f) => f.flower_id === session.currentFlowerId)
     if (flower) flower.available -= qty
 
@@ -319,4 +451,12 @@ async function handleText(ctx) {
   return false
 }
 
-module.exports = { startOrder, handleCallbackQuery, handleText, formatSummary, parseDate }
+module.exports = {
+  startOrder,
+  handleCallbackQuery,
+  handleText,
+  formatSummary,
+  parseDate,
+  getNextStatus,
+  formatReadyAt,
+}

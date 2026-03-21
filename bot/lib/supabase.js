@@ -156,6 +156,21 @@ async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
   return defect.id
 }
 
+async function getActiveOrders() {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, client_name, ready_at, status, delivery_type')
+    .not('status', 'in', '("выдан","доставлен")')
+    .order('ready_at')
+  if (error) throw error
+  return data
+}
+
+async function updateOrderStatus(orderId, status) {
+  const { error } = await supabase.from('orders').update({ status }).eq('id', orderId)
+  if (error) throw error
+}
+
 async function getFlowerStock() {
   const { data, error } = await supabase
     .from('flower_stock')
@@ -200,4 +215,4 @@ async function saveOrder({ clientName, clientPhone, deliveryType, address, ready
   return order.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, saveDelivery, saveDefect, saveOrder }
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder }

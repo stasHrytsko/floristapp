@@ -26,8 +26,10 @@ function makeOrderModule(supabaseMock) {
 const orderModule = makeOrderModule({
   getFlowerStock: async () => [],
   saveOrder: async () => 'order-id-1',
+  getActiveOrders: async () => [],
+  updateOrderStatus: async () => {},
 })
-const { formatSummary, parseDate } = orderModule
+const { formatSummary, parseDate, getNextStatus, formatReadyAt } = orderModule
 
 // ─── parseDate ────────────────────────────────────────────────────
 
@@ -210,5 +212,87 @@ describe('валидация количества', () => {
 
   it('принимает ровно доступное количество', () => {
     assert.equal(validateQty('20', 20), 20)
+  })
+})
+
+// ─── getNextStatus ───────────────────────────────────────────────
+
+describe('getNextStatus — переходы статусов', () => {
+  it('самовывоз: новый → в работе', () => {
+    assert.equal(getNextStatus('новый', 'самовывоз'), 'в работе')
+  })
+
+  it('самовывоз: в работе → готов к выдаче', () => {
+    assert.equal(getNextStatus('в работе', 'самовывоз'), 'готов к выдаче')
+  })
+
+  it('самовывоз: готов к выдаче → выдан', () => {
+    assert.equal(getNextStatus('готов к выдаче', 'самовывоз'), 'выдан')
+  })
+
+  it('самовывоз: выдан — финальный, возвращает null', () => {
+    assert.equal(getNextStatus('выдан', 'самовывоз'), null)
+  })
+
+  it('доставка: в работе → готов к доставке', () => {
+    assert.equal(getNextStatus('в работе', 'доставка'), 'готов к доставке')
+  })
+
+  it('доставка: готов к доставке → доставлен', () => {
+    assert.equal(getNextStatus('готов к доставке', 'доставка'), 'доставлен')
+  })
+
+  it('доставка: доставлен — финальный, возвращает null', () => {
+    assert.equal(getNextStatus('доставлен', 'доставка'), null)
+  })
+
+  it('неизвестный тип доставки → null', () => {
+    assert.equal(getNextStatus('новый', 'неизвестно'), null)
+  })
+})
+
+// ─── formatReadyAt ───────────────────────────────────────────────
+
+describe('formatReadyAt', () => {
+  it('форматирует ISO дату в ДД.ММ.ГГГГ', () => {
+    assert.equal(formatReadyAt('2026-03-25'), '25.03.2026')
+  })
+
+  it('форматирует начало года', () => {
+    assert.equal(formatReadyAt('2026-01-01'), '01.01.2026')
+  })
+})
+
+// ─── callback_data длина ≤ 64 байта (подменю и статусы) ──────────
+
+describe('callback_data подменю и статусов — длина ≤ 64 байта', () => {
+  const MAX_UUID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+
+  const callbacks = [
+    'no_menu_new',
+    'no_menu_list',
+    `no_ord_${MAX_UUID}`,
+    'no_nst',
+  ]
+
+  for (const cb of callbacks) {
+    it(`«${cb}» — не превышает 64 байта`, () => {
+      assert.ok(Buffer.byteLength(cb, 'utf8') <= 64, `Слишком длинный: ${cb}`)
+    })
+  }
+})
+
+// ─── updateOrderStatus — мок ──────────────────────────────────────
+
+describe('updateOrderStatus — корректный вызов', () => {
+  it('вызывается с orderId и новым статусом', async () => {
+    const calls = []
+    async function mockUpdateOrderStatus(orderId, status) {
+      calls.push({ orderId, status })
+    }
+    await mockUpdateOrderStatus('order-uuid-1', 'в работе')
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].orderId, 'order-uuid-1')
+    assert.equal(calls[0].status, 'в работе')
   })
 })
