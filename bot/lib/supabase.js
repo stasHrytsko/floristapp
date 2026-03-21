@@ -38,6 +38,26 @@ async function getFlowers() {
   return data
 }
 
+// Только цветки из партий конкретного поставщика (quantity > 0), уникальные
+async function getFlowersBySupplier(supplierId) {
+  const { data, error } = await supabase
+    .from('batches')
+    .select('flower_id, flowers!inner(id, name)')
+    .eq('supplier_id', supplierId)
+    .gt('quantity', 0)
+  if (error) throw error
+
+  const seen = new Set()
+  return data
+    .filter((row) => {
+      if (seen.has(row.flower_id)) return false
+      seen.add(row.flower_id)
+      return true
+    })
+    .map((row) => row.flowers)
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+}
+
 async function saveDelivery({ supplierId, items, defectType, deliveredAt }) {
   // Создаём запись поставки
   const { data: delivery, error: deliveryErr } = await supabase
@@ -136,4 +156,4 @@ async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
   return defect.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, saveDelivery, saveDefect }
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, saveDelivery, saveDefect }
