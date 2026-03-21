@@ -94,6 +94,38 @@ describe('NewOrderPage', () => {
     expect(screen.getAllByText(/позиция/i)).toHaveLength(1)
   })
 
+  it('показывает ошибку когда количество превышает остаток', () => {
+    setup()
+    render(<NewOrderPage />)
+    const flowerSelects = screen.getAllByRole('combobox')
+    const flowerSelect = flowerSelects[flowerSelects.length - 1]
+    fireEvent.change(flowerSelect, { target: { value: '1' } }) // Роза, available: 8
+    fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '9' } })
+    expect(screen.getByText(/на складе только 8/i)).toBeDefined()
+  })
+
+  it('содержит название цветка в сообщении об ошибке', () => {
+    setup()
+    render(<NewOrderPage />)
+    const flowerSelects = screen.getAllByRole('combobox')
+    const flowerSelect = flowerSelects[flowerSelects.length - 1]
+    fireEvent.change(flowerSelect, { target: { value: '1' } })
+    fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '100' } })
+    expect(screen.getByText(/на складе только.*роза/i)).toBeDefined()
+  })
+
+  it('кнопка «Сохранить» заблокирована когда количество превышает остаток', () => {
+    setup()
+    render(<NewOrderPage />)
+    fillBaseForm()
+    const flowerSelects = screen.getAllByRole('combobox')
+    const flowerSelect = flowerSelects[flowerSelects.length - 1]
+    fireEvent.change(flowerSelect, { target: { value: '1' } })
+    fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '100' } })
+    const btn = screen.getByRole('button', { name: /сохранить заказ/i })
+    expect(btn.disabled).toBe(true)
+  })
+
   it('кнопка «Сохранить» заблокирована при пустой форме', () => {
     setup()
     render(<NewOrderPage />)

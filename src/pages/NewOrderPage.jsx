@@ -39,6 +39,15 @@ export default function NewOrderPage({ onBack }) {
     return f ? f.available : 0
   }
 
+  function itemError(item) {
+    if (!item.flowerId || !item.quantity) return null
+    const qty = Number(item.quantity)
+    if (qty <= 0) return null
+    const f = availableFlowers.find((f) => f.flower_id === item.flowerId)
+    if (!f || qty <= f.available) return null
+    return `На складе только ${f.available} ${f.name.toLowerCase()}`
+  }
+
   const isValid =
     clientName.trim() &&
     readyAt &&
@@ -153,6 +162,7 @@ export default function NewOrderPage({ onBack }) {
 
       {items.map((item, idx) => {
         const max = maxQty(item.flowerId)
+        const err = itemError(item)
         return (
           <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
@@ -188,8 +198,9 @@ export default function NewOrderPage({ onBack }) {
               value={item.quantity}
               onChange={(e) => updateItem(item.id, { quantity: e.target.value })}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              className={`w-full border rounded-lg px-3 py-2 text-sm ${err ? 'border-red-400' : 'border-gray-300'}`}
             />
+            {err && <p className="text-red-500 text-xs">{err}</p>}
           </div>
         )
       })}
