@@ -29,7 +29,7 @@ const orderModule = makeOrderModule({
   getActiveOrders: async () => [],
   updateOrderStatus: async () => {},
 })
-const { formatSummary, parseDate, getNextStatus, formatReadyAt } = orderModule
+const { formatSummary, parseDate, getNextStatus, formatReadyAt, getISODate } = orderModule
 
 // ─── parseDate ────────────────────────────────────────────────────
 
@@ -273,6 +273,10 @@ describe('callback_data подменю и статусов — длина ≤ 64
     'no_menu_list',
     `no_ord_${MAX_UUID}`,
     'no_nst',
+    'no_fil_today',
+    'no_fil_tmrw',
+    'no_fil_aftmrw',
+    'no_fil_all',
   ]
 
   for (const cb of callbacks) {
@@ -294,5 +298,66 @@ describe('updateOrderStatus — корректный вызов', () => {
     assert.equal(calls.length, 1)
     assert.equal(calls[0].orderId, 'order-uuid-1')
     assert.equal(calls[0].status, 'в работе')
+  })
+})
+
+// ─── getISODate ───────────────────────────────────────────────────
+
+describe('getISODate', () => {
+  it('возвращает строку формата ГГГГ-ММ-ДД', () => {
+    assert.match(getISODate(0), /^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('смещение +1 даёт завтра', () => {
+    const today = getISODate(0)
+    const tomorrow = getISODate(1)
+    const diff = new Date(tomorrow) - new Date(today)
+    assert.equal(diff, 86400000) // ровно 1 день в миллисекундах
+  })
+
+  it('смещение +2 даёт послезавтра', () => {
+    const today = getISODate(0)
+    const dayAfter = getISODate(2)
+    const diff = new Date(dayAfter) - new Date(today)
+    assert.equal(diff, 86400000 * 2)
+  })
+})
+
+// ─── getActiveOrders фильтрация — мок ────────────────────────────
+
+describe('getActiveOrders — фильтрация по дате', () => {
+  it('без даты возвращает все активные заказы', async () => {
+    const all = [
+      { id: '1', client_name: 'Мария', ready_at: '2026-03-21', status: 'новый', delivery_type: 'самовывоз' },
+      { id: '2', client_name: 'Анна', ready_at: '2026-03-22', status: 'в работе', delivery_type: 'доставка' },
+    ]
+    async function mockGetActiveOrders(date) {
+      if (date) return all.filter((o) => o.ready_at === date)
+      return all
+    }
+    const result = await mockGetActiveOrders(null)
+    assert.equal(result.length, 2)
+  })
+
+  it('с датой возвращает только заказы на этот день', async () => {
+    const all = [
+      { id: '1', client_name: 'Мария', ready_at: '2026-03-21', status: 'новый', delivery_type: 'самовывоз' },
+      { id: '2', client_name: 'Анна', ready_at: '2026-03-22', status: 'в работе', delivery_type: 'доставка' },
+    ]
+    async function mockGetActiveOrders(date) {
+      if (date) return all.filter((o) => o.ready_at === date)
+      return all
+    }
+    const result = await mockGetActiveOrders('2026-03-21')
+    assert.equal(result.length, 1)
+    assert.equal(result[0].client_name, 'Мария')
+  })
+
+  it('с датой без совпадений возвращает пустой массив', async () => {
+    async function mockGetActiveOrders(date) {
+      return date ? [] : []
+    }
+    const result = await mockGetActiveOrders('2099-01-01')
+    assert.equal(result.length, 0)
   })
 })

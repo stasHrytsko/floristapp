@@ -195,12 +195,15 @@ async function getFlowerStockById(flowerId) {
   return data
 }
 
-async function getActiveOrders() {
-  const { data, error } = await supabase
+// date — необязательный ISO-строка ГГГГ-ММ-ДД для фильтрации по ready_at
+async function getActiveOrders(date) {
+  let query = supabase
     .from('orders')
     .select('id, client_name, ready_at, status, delivery_type')
     .not('status', 'in', '("выдан","доставлен")')
     .order('ready_at')
+  if (date) query = query.eq('ready_at', date)
+  const { data, error } = await query
   if (error) throw error
   return data
 }
