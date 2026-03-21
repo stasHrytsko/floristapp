@@ -55,10 +55,6 @@ function setup(saveDeliveryOverride) {
   return { saveDelivery }
 }
 
-function openForm() {
-  fireEvent.click(screen.getByText(/новая поставка/i))
-}
-
 function fillForm() {
   const selects = screen.getAllByRole('combobox')
   fireEvent.change(selects[0], { target: { value: '1' } })   // поставщик
@@ -80,12 +76,6 @@ describe('DeliveryPage', () => {
     expect(screen.getByText(/загрузка/i)).toBeDefined()
   })
 
-  it('показывает кнопку "Новая поставка"', () => {
-    setup()
-    render(<DeliveryPage />)
-    expect(screen.getByText(/новая поставка/i)).toBeDefined()
-  })
-
   it('показывает фильтр активные/все', () => {
     setup()
     render(<DeliveryPage />)
@@ -99,18 +89,16 @@ describe('DeliveryPage', () => {
     expect(screen.getByText('Розы опт')).toBeDefined()
   })
 
-  it('открывает форму по кнопке', () => {
+  it('показывает форму когда addFormOpen=true', () => {
     setup()
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     expect(screen.getAllByText(/поставщик/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/дата поставки/i)).toBeDefined()
   })
 
   it('добавляет позицию в форме', () => {
     setup()
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     expect(screen.getAllByText(/позиция/i)).toHaveLength(1)
     fireEvent.click(screen.getByText(/добавить позицию/i))
     expect(screen.getAllByText(/позиция/i)).toHaveLength(2)
@@ -118,16 +106,14 @@ describe('DeliveryPage', () => {
 
   it('кнопка "Сохранить" заблокирована при пустой форме', () => {
     setup()
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     const btn = screen.getByRole('button', { name: /сохранить поставку/i })
     expect(btn.disabled).toBe(true)
   })
 
   it('вызывает saveDelivery с корректными данными', async () => {
     const { saveDelivery } = setup()
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     fillForm()
     fireEvent.click(screen.getByRole('button', { name: /сохранить поставку/i }))
     await waitFor(() =>
@@ -144,8 +130,7 @@ describe('DeliveryPage', () => {
 
   it('скрывает форму и обновляет список после сохранения', async () => {
     setup()
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     fillForm()
     fireEvent.click(screen.getByRole('button', { name: /сохранить поставку/i }))
     await waitFor(() => expect(screen.queryByText(/дата поставки/i)).toBeNull())
@@ -154,8 +139,7 @@ describe('DeliveryPage', () => {
 
   it('показывает ошибку при неудачном сохранении', async () => {
     setup(vi.fn().mockRejectedValue(new Error('Нет сети')))
-    render(<DeliveryPage />)
-    openForm()
+    render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     fillForm()
     fireEvent.click(screen.getByRole('button', { name: /сохранить поставку/i }))
     await waitFor(() => expect(screen.getByText('Нет сети')).toBeDefined())

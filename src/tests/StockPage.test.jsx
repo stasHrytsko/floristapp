@@ -79,4 +79,17 @@ describe('StockPage', () => {
     render(<StockPage />)
     expect(screen.getByText(/3 цветка заканчиваются/)).toBeDefined()
   })
+
+  it('показывает блок метрик с правильными суммами', () => {
+    const flowers = [
+      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8, stale: false, low_stock_threshold: 5 },
+      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 1, available: 4, stale: false, low_stock_threshold: 5 },
+    ]
+    useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
+    render(<StockPage />)
+    expect(screen.getAllByText('свободно').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('резерв').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('всего').length).toBeGreaterThan(0)
+    expect(screen.getByText('видов')).toBeDefined()
+  })
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
 
 const MAX_SUPPLIERS = 5
@@ -24,7 +24,7 @@ function SupplierForm({ initial, onSave, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-4 border border-gray-100 mb-3 space-y-3">
       <input
         type="text"
         placeholder="Имя поставщика"
@@ -45,14 +45,14 @@ function SupplierForm({ initial, onSave, onCancel }) {
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          className="flex-1 bg-green-600 text-white text-sm py-2 rounded-lg disabled:opacity-50"
+          className="flex-1 bg-green-600 text-white text-sm py-2.5 rounded-xl disabled:opacity-50"
         >
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 border border-gray-300 text-gray-600 text-sm py-2 rounded-lg"
+          className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl"
         >
           Отмена
         </button>
@@ -61,7 +61,7 @@ function SupplierForm({ initial, onSave, onCancel }) {
   )
 }
 
-export default function SuppliersPage() {
+export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   const { suppliers, loading, error, addSupplier, updateSupplier, deleteSupplier } = useSuppliers()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -69,9 +69,19 @@ export default function SuppliersPage() {
 
   const atLimit = suppliers.length >= MAX_SUPPLIERS
 
+  useEffect(() => {
+    if (addFormOpen && !atLimit) setShowAddForm(true)
+  }, [addFormOpen, atLimit])
+
+  function handleFormClose() {
+    setShowAddForm(false)
+    onAddFormClose?.()
+  }
+
   async function handleAdd(name, phone) {
     await addSupplier(name, phone)
     setShowAddForm(false)
+    onAddFormClose?.()
   }
 
   async function handleUpdate(name, phone) {
@@ -98,8 +108,12 @@ export default function SuppliersPage() {
 
   return (
     <div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[13px] text-gray-400">{suppliers.length} из {MAX_SUPPLIERS}</span>
+      </div>
+
       {showAddForm && (
-        <SupplierForm onSave={handleAdd} onCancel={() => setShowAddForm(false)} />
+        <SupplierForm onSave={handleAdd} onCancel={handleFormClose} />
       )}
 
       {deleteError && (
@@ -110,7 +124,7 @@ export default function SuppliersPage() {
         <p className="text-center text-gray-400 text-sm mt-6 mb-4">Поставщики не добавлены</p>
       )}
 
-      <ul className="space-y-2 mb-4">
+      <ul className="space-y-3 mb-4">
         {suppliers.map((s) =>
           editingId === s.id ? (
             <li key={s.id}>
@@ -121,24 +135,20 @@ export default function SuppliersPage() {
               />
             </li>
           ) : (
-            <li
-              key={s.id}
-              className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">{s.name}</p>
-                {s.phone && <p className="text-xs text-gray-400">{s.phone}</p>}
-              </div>
-              <div className="flex gap-3">
+            <li key={s.id} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
+              <p className="text-[16px] font-bold text-gray-900 mb-0.5">{s.name}</p>
+              {s.phone && <p className="text-[13px] text-gray-400 mb-3">{s.phone}</p>}
+              {!s.phone && <div className="mb-3" />}
+              <div className="flex gap-2">
                 <button
                   onClick={() => setEditingId(s.id)}
-                  className="text-xs text-blue-500"
+                  className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
                 >
                   Изменить
                 </button>
                 <button
                   onClick={() => handleDelete(s.id)}
-                  className="text-xs text-red-400"
+                  className="flex-1 bg-gray-100 text-red-500 text-sm py-2.5 rounded-xl font-medium"
                 >
                   Удалить
                 </button>
