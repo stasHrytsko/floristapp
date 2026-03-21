@@ -13,8 +13,16 @@ const STEPS = {
   QUANTITY_INPUT: 'QUANTITY_INPUT',
   MORE_FLOWERS: 'MORE_FLOWERS',
   CONFIRM: 'CONFIRM',
+  ORDER_FILTER: 'ORDER_FILTER',
   ORDER_LIST: 'ORDER_LIST',
   ORDER_STATUS: 'ORDER_STATUS',
+}
+
+// Возвращает ISO-дату (ГГГГ-ММ-ДД) со смещением дней от сегодня (UTC)
+function getISODate(offsetDays) {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + offsetDays)
+  return d.toISOString().slice(0, 10)
 }
 
 // Самовывоз: новый → в работе → готов к выдаче → выдан
@@ -181,9 +189,41 @@ async function handleCallbackQuery(ctx) {
   }
 
   if (data === 'no_menu_list' && session.step === STEPS.MENU) {
+    session.step = STEPS.ORDER_FILTER
+    setSession(userId, session)
+    await ctx.answerCbQuery()
+    await ctx.editMessageText('Выбери период:', {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📅 На сегодня', callback_data: 'no_fil_today' },
+            { text: '📅 На завтра', callback_data: 'no_fil_tmrw' },
+          ],
+          [
+            { text: '📅 На послезавтра', callback_data: 'no_fil_aftmrw' },
+            { text: '🔄 Все активные', callback_data: 'no_fil_all' },
+          ],
+          CANCEL_ROW,
+        ],
+      },
+    })
+    return true
+  }
+
+  // ── Фильтры заказов ──────────────────────────────────────────────
+
+  const filterMap = {
+    no_fil_today: getISODate(0),
+    no_fil_tmrw: getISODate(1),
+    no_fil_aftmrw: getISODate(2),
+    no_fil_all: null,
+  }
+
+  if (data in filterMap && session.step === STEPS.ORDER_FILTER) {
+    const date = filterMap[data]
     let orders
     try {
-      orders = await getActiveOrders()
+      orders = await getActiveOrders(date)
     } catch {
       await ctx.answerCbQuery()
       await ctx.reply('Ошибка загрузки заказов. Попробуй ещё раз.')
@@ -191,7 +231,7 @@ async function handleCallbackQuery(ctx) {
     }
     if (orders.length === 0) {
       await ctx.answerCbQuery()
-      await ctx.editMessageText('Нет активных заказов.')
+      await ctx.editMessageText('Заказов нет.')
       clearSession(userId)
       return true
     }
@@ -206,7 +246,7 @@ async function handleCallbackQuery(ctx) {
       },
     ])
     buttons.push(CANCEL_ROW)
-    await ctx.editMessageText('Активные заказы:', {
+    await ctx.editMessageText('Заказы:', {
       reply_markup: { inline_keyboard: buttons },
     })
     return true
@@ -459,4 +499,5 @@ module.exports = {
   parseDate,
   getNextStatus,
   formatReadyAt,
+  getISODate,
 }
