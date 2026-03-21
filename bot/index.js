@@ -7,6 +7,7 @@ const express = require('express')
 const delivery = require('./handlers/delivery')
 const defect = require('./handlers/defect')
 const order = require('./handlers/order')
+const stock = require('./handlers/stock')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const ALLOWED_ID = Number(process.env.ALLOWED_TELEGRAM_ID)
@@ -52,9 +53,7 @@ bot.hears('⚠️ Брак', (ctx) => defect.startDefect(ctx))
 
 bot.hears('📋 Заказы', (ctx) => order.startOrder(ctx))
 
-bot.hears('🌸 Остатки', (ctx) => {
-  ctx.reply('Раздел «Остатки» — в разработке.')
-})
+bot.hears('🌸 Остатки', (ctx) => stock.startStock(ctx))
 
 // Callback-кнопки (inline keyboard) — роутинг по префиксу
 bot.on('callback_query', async (ctx) => {
@@ -63,6 +62,8 @@ bot.on('callback_query', async (ctx) => {
     await defect.handleCallbackQuery(ctx)
   } else if (data.startsWith('no_')) {
     await order.handleCallbackQuery(ctx)
+  } else if (data.startsWith('st_')) {
+    await stock.handleCallbackQuery(ctx)
   } else {
     await delivery.handleCallbackQuery(ctx)
   }
@@ -73,6 +74,7 @@ bot.on('text', async (ctx) => {
   const handled =
     (await defect.handleText(ctx)) ||
     (await order.handleText(ctx)) ||
+    (await stock.handleText(ctx)) ||
     (await delivery.handleText(ctx))
   if (!handled) {
     ctx.reply('Используй кнопки меню ниже.', MAIN_MENU)
