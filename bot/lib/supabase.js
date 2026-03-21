@@ -156,6 +156,45 @@ async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
   return defect.id
 }
 
+async function getAllStock() {
+  const { data, error } = await supabase
+    .from('flower_stock')
+    .select('flower_id, name, available, reserved, total')
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+async function getLowStock() {
+  const { data, error } = await supabase
+    .from('flower_stock')
+    .select('flower_id, name, available')
+    .lt('available', 5)
+    .order('available')
+  if (error) throw error
+  return data
+}
+
+async function searchFlowers(query) {
+  const { data, error } = await supabase
+    .from('flower_stock')
+    .select('flower_id, name, available')
+    .ilike('name', `${query}%`)
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+async function getFlowerStockById(flowerId) {
+  const { data, error } = await supabase
+    .from('flower_stock')
+    .select('flower_id, name, available, reserved, total')
+    .eq('flower_id', flowerId)
+    .single()
+  if (error) throw error
+  return data
+}
+
 async function getActiveOrders() {
   const { data, error } = await supabase
     .from('orders')
@@ -215,4 +254,4 @@ async function saveOrder({ clientName, clientPhone, deliveryType, address, ready
   return order.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder }
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder }
