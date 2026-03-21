@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import OrdersPage from '../pages/OrdersPage'
 import OrderCard from '../components/OrderCard'
 
@@ -39,26 +39,26 @@ describe('OrdersPage', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('показывает загрузку', () => {
-    useOrders.mockReturnValue({ orders: [], loading: true, error: null, refresh: vi.fn() })
+    useOrders.mockReturnValue({ orders: [], loading: true, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
     render(<OrdersPage />)
     expect(screen.getByText(/загрузка/i)).toBeDefined()
   })
 
   it('показывает ошибку с кнопкой повторить', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: 'Нет сети', refresh: vi.fn() })
+    useOrders.mockReturnValue({ orders: [], loading: false, error: 'Нет сети', refresh: vi.fn(), deleteOrder: vi.fn() })
     render(<OrdersPage />)
-    expect(screen.getByText('Нет сети')).toBeDefined()
+    expect(screen.getByText(/не удалось загрузить заказы/i)).toBeDefined()
     expect(screen.getByText(/повторить/i)).toBeDefined()
   })
 
   it('показывает сообщение при пустом списке', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn() })
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
     render(<OrdersPage />)
     expect(screen.getByText(/активных заказов нет/i)).toBeDefined()
   })
 
   it('рендерит карточки заказов', () => {
-    useOrders.mockReturnValue({ orders: mockOrders, loading: false, error: null, refresh: vi.fn() })
+    useOrders.mockReturnValue({ orders: mockOrders, loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
     render(<OrdersPage />)
     expect(screen.getByText('Анна')).toBeDefined()
     expect(screen.getByText('Мария')).toBeDefined()
@@ -102,5 +102,37 @@ describe('OrderCard', () => {
   it('не показывает кнопку смены статуса без onStatusChange', () => {
     render(<OrderCard order={mockOrders[0]} />)
     expect(screen.queryByText(/→/)).toBeNull()
+  })
+
+  it('показывает кнопку «Отменить заказ» когда передан onDelete', () => {
+    render(<OrderCard order={mockOrders[0]} onDelete={vi.fn()} />)
+    expect(screen.getByText(/отменить заказ/i)).toBeDefined()
+  })
+
+  it('не показывает кнопку «Отменить заказ» без onDelete', () => {
+    render(<OrderCard order={mockOrders[0]} />)
+    expect(screen.queryByText(/отменить заказ/i)).toBeNull()
+  })
+
+  it('показывает диалог подтверждения при клике «Отменить заказ»', () => {
+    render(<OrderCard order={mockOrders[0]} onDelete={vi.fn()} />)
+    fireEvent.click(screen.getByText(/отменить заказ/i))
+    expect(screen.getByText(/удалить заказ/i)).toBeDefined()
+  })
+
+  it('вызывает onDelete после подтверждения', () => {
+    const onDelete = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onDelete={onDelete} />)
+    fireEvent.click(screen.getByText(/отменить заказ/i))
+    fireEvent.click(screen.getByRole('button', { name: /^да$/i }))
+    expect(onDelete).toHaveBeenCalled()
+  })
+
+  it('не вызывает onDelete при отмене', () => {
+    const onDelete = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onDelete={onDelete} />)
+    fireEvent.click(screen.getByText(/отменить заказ/i))
+    fireEvent.click(screen.getByRole('button', { name: /отмена/i }))
+    expect(onDelete).not.toHaveBeenCalled()
   })
 })

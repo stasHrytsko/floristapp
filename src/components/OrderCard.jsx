@@ -1,13 +1,11 @@
+import { useState } from 'react'
+import ConfirmDialog from './ConfirmDialog'
+
 const STATUS_STYLES = {
   'новый': 'bg-blue-100 text-blue-700',
   'в работе': 'bg-yellow-100 text-yellow-700',
   'готов к выдаче': 'bg-green-100 text-green-700',
   'готов к доставке': 'bg-green-100 text-green-700',
-}
-
-const NEXT_STATUS = {
-  'новый': 'в работе',
-  'в работе': null,
 }
 
 function nextOrderStatus(status, deliveryType) {
@@ -24,7 +22,8 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
-export default function OrderCard({ order, onStatusChange }) {
+export default function OrderCard({ order, onStatusChange, onDelete }) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const { client_name, client_phone, delivery_type, delivery_address, status, ready_at, order_items = [] } = order
   const statusStyle = STATUS_STYLES[status] || 'bg-gray-100 text-gray-600'
   const isDelivery = delivery_type === 'доставка'
@@ -59,6 +58,24 @@ export default function OrderCard({ order, onStatusChange }) {
         >
           → {next}
         </button>
+      )}
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => setConfirmOpen(true)}
+          className="w-full bg-gray-100 text-red-500 text-sm py-2.5 rounded-xl font-medium mt-2"
+        >
+          Отменить заказ
+        </button>
+      )}
+
+      {confirmOpen && (
+        <ConfirmDialog
+          message={`Удалить заказ клиента «${client_name}»?`}
+          onConfirm={() => { setConfirmOpen(false); onDelete() }}
+          onCancel={() => setConfirmOpen(false)}
+        />
       )}
     </div>
   )

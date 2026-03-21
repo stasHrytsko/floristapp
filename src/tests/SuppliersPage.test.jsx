@@ -43,7 +43,7 @@ describe('SuppliersPage', () => {
   it('показывает ошибку', () => {
     useSuppliers.mockReturnValue(defaultMock({ error: 'Нет сети' }))
     render(<SuppliersPage />)
-    expect(screen.getByText('Нет сети')).toBeDefined()
+    expect(screen.getByText(/не удалось загрузить поставщиков/i)).toBeDefined()
   })
 
   it('показывает сообщение при пустом списке', () => {
@@ -106,12 +106,31 @@ describe('SuppliersPage', () => {
     expect(screen.getByDisplayValue('Розы опт')).toBeDefined()
   })
 
-  it('вызывает deleteSupplier при клике «Удалить»', async () => {
+  it('показывает диалог подтверждения при клике «Удалить»', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    render(<SuppliersPage />)
+    const deleteBtns = screen.getAllByText('Удалить')
+    fireEvent.click(deleteBtns[0])
+    expect(screen.getByText(/удалить поставщика/i)).toBeDefined()
+  })
+
+  it('вызывает deleteSupplier после подтверждения', async () => {
     const deleteSupplier = vi.fn().mockResolvedValue(undefined)
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers, deleteSupplier }))
     render(<SuppliersPage />)
     const deleteBtns = screen.getAllByText('Удалить')
     fireEvent.click(deleteBtns[0])
+    fireEvent.click(screen.getByRole('button', { name: /^да$/i }))
     await waitFor(() => expect(deleteSupplier).toHaveBeenCalledWith('1'))
+  })
+
+  it('не вызывает deleteSupplier при отмене', async () => {
+    const deleteSupplier = vi.fn()
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers, deleteSupplier }))
+    render(<SuppliersPage />)
+    const deleteBtns = screen.getAllByText('Удалить')
+    fireEvent.click(deleteBtns[0])
+    fireEvent.click(screen.getByRole('button', { name: /отмена/i }))
+    expect(deleteSupplier).not.toHaveBeenCalled()
   })
 })
