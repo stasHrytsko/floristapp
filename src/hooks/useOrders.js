@@ -43,5 +43,11 @@ export function useOrders() {
     fetchData()
   }, [])
 
-  return { orders, loading, error, refresh: fetchData }
+  async function deleteOrder(id) {
+    const { error: err } = await supabase.from('orders').delete().eq('id', id)
+    if (err) throw new Error('Не удалось удалить заказ')
+    setOrders((prev) => prev.filter((o) => o.id !== id))
+  }
+
+  return { orders, loading, error, refresh: fetchData, deleteOrder }
 }

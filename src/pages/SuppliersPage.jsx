@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const MAX_SUPPLIERS = 5
 
@@ -8,9 +9,13 @@ function SupplierForm({ initial, onSave, onCancel }) {
   const [phone, setPhone] = useState(initial?.phone ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [nameTouched, setNameTouched] = useState(false)
+
+  const nameError = nameTouched && !name.trim()
 
   async function handleSubmit(e) {
     e.preventDefault()
+    setNameTouched(true)
     if (!name.trim()) return
     setSaving(true)
     setError(null)
@@ -25,14 +30,18 @@ function SupplierForm({ initial, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-4 border border-gray-100 mb-3 space-y-3">
-      <input
-        type="text"
-        placeholder="Имя поставщика"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-        required
-      />
+      <div>
+        <input
+          type="text"
+          placeholder="Имя поставщика"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => setNameTouched(true)}
+          className={`w-full border rounded-lg px-3 py-2 text-sm ${nameError ? 'border-red-400' : 'border-gray-300'}`}
+          required
+        />
+        {nameError && <p className="text-red-500 text-xs mt-1">Обязательное поле</p>}
+      </div>
       <input
         type="tel"
         placeholder="Телефон"
@@ -44,7 +53,7 @@ function SupplierForm({ initial, onSave, onCancel }) {
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={saving || !name.trim()}
+          disabled={saving}
           className="flex-1 bg-green-600 text-white text-sm py-2.5 rounded-xl disabled:opacity-50"
         >
           {saving ? 'Сохранение...' : 'Сохранить'}
@@ -66,6 +75,7 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [deleteError, setDeleteError] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const atLimit = suppliers.length >= MAX_SUPPLIERS
 
@@ -91,10 +101,11 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
 
   async function handleDelete(id) {
     setDeleteError(null)
+    setConfirmDelete(null)
     try {
       await deleteSupplier(id)
     } catch (err) {
-      setDeleteError(err.message || 'Ошибка удаления')
+      setDeleteError('Не удалось удалить поставщика')
     }
   }
 
@@ -103,7 +114,7 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   }
 
   if (error) {
-    return <p className="text-center text-red-500 mt-10 text-sm">{error}</p>
+    return <p className="text-center text-red-500 mt-10 text-sm">Не удалось загрузить поставщиков</p>
   }
 
   return (
@@ -147,7 +158,7 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
                   Изменить
                 </button>
                 <button
-                  onClick={() => handleDelete(s.id)}
+                  onClick={() => setConfirmDelete({ id: s.id, name: s.name })}
                   className="flex-1 bg-gray-100 text-red-500 text-sm py-2.5 rounded-xl font-medium"
                 >
                   Удалить
@@ -166,6 +177,14 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
         >
           {atLimit ? `Максимум ${MAX_SUPPLIERS} поставщиков` : '+ Добавить поставщика'}
         </button>
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Удалить поставщика «${confirmDelete.name}»?`}
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )

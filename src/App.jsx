@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import ErrorBoundary from './components/ErrorBoundary'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 import StockPage from './pages/StockPage'
 import HistoryPage from './pages/HistoryPage'
 import OrdersPage from './pages/OrdersPage'
@@ -67,6 +69,7 @@ const TABS_WITH_ADD = ['stock', 'orders', 'delivery', 'suppliers']
 
 export default function App() {
   const [tab, setTab] = useState('stock')
+  const online = useOnlineStatus()
   const [stockAddOpen, setStockAddOpen] = useState(false)
   const [supplierAddOpen, setSupplierAddOpen] = useState(false)
   const [deliveryAddOpen, setDeliveryAddOpen] = useState(false)
@@ -94,7 +97,14 @@ export default function App() {
         )}
       </header>
 
+      {!online && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center">
+          <p className="text-xs text-yellow-700">Нет интернета — только просмотр</p>
+        </div>
+      )}
+
       <main className="px-4 py-4 flex-1">
+        <ErrorBoundary>
         {tab === 'stock' && (
           <StockPage
             addModalOpen={stockAddOpen}
@@ -116,6 +126,7 @@ export default function App() {
             onAddFormClose={() => setSupplierAddOpen(false)}
           />
         )}
+        </ErrorBoundary>
       </main>
 
       <nav className="sticky bottom-0 bg-white border-t border-gray-100 flex">
