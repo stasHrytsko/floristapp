@@ -22,11 +22,12 @@ function makeStockModule(supabaseMock) {
   }
 }
 
-const { formatAllStock, formatLowStock, formatFlowerDetail } = makeStockModule({
+const { formatAllStock, formatLowStock, formatFlowerDetail, formatStorage, storageIndicator, daysOnStorage } = makeStockModule({
   getAllStock: async () => [],
   getLowStock: async () => [],
   searchFlowers: async () => [],
   getFlowerStockById: async () => null,
+  getActiveBatches: async () => [],
 })
 
 // ─── formatAllStock ───────────────────────────────────────────────
@@ -121,6 +122,7 @@ describe('callback_data — длина ≤ 64 байта', () => {
     'st_all',
     'st_low',
     'st_search',
+    'st_storage',
     `st_fl_${MAX_UUID}`,
   ]
 
@@ -129,6 +131,114 @@ describe('callback_data — длина ≤ 64 байта', () => {
       assert.ok(Buffer.byteLength(cb, 'utf8') <= 64, `Слишком длинный: ${cb}`)
     })
   }
+})
+
+// ─── storageIndicator ─────────────────────────────────────────────
+
+describe('storageIndicator', () => {
+  it('0 дней → 🟢', () => assert.equal(storageIndicator(0), '🟢'))
+  it('10 дней → 🟢', () => assert.equal(storageIndicator(10), '🟢'))
+  it('11 дней → 🟡', () => assert.equal(storageIndicator(11), '🟡'))
+  it('20 дней → 🟡', () => assert.equal(storageIndicator(20), '🟡'))
+  it('21 день → 🔴', () => assert.equal(storageIndicator(21), '🔴'))
+  it('30 дней → 🔴', () => assert.equal(storageIndicator(30), '🔴'))
+})
+
+// ─── daysOnStorage ────────────────────────────────────────────────
+
+describe('daysOnStorage', () => {
+  it('сегодняшняя дата → 0 дней', () => {
+    const now = new Date()
+    const isoToday = now.toISOString().slice(0, 10)
+    assert.equal(daysOnStorage(isoToday), 0)
+  })
+
+  it('вчерашняя дата → 1 день', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 1)
+    assert.equal(daysOnStorage(d.toISOString().slice(0, 10)), 1)
+  })
+
+  it('15 дней назад → 15 дней', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 15)
+    assert.equal(daysOnStorage(d.toISOString().slice(0, 10)), 15)
+  })
+})
+
+// ─── formatStorage ────────────────────────────────────────────────
+
+describe('formatStorage', () => {
+  it('пустой список → сообщение об отсутствии партий', () => {
+    assert.equal(formatStorage([]), 'Нет партий на складе.')
+  })
+
+  it('начинается с заголовка', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 5)
+    const batch = {
+      delivered_at: d.toISOString().slice(0, 10),
+      flowers: { name: 'Роза' },
+      suppliers: { name: 'Марина' },
+    }
+    assert.ok(formatStorage([batch]).startsWith('🕐 Хранение'))
+  })
+
+  it('содержит название цветка, поставщика и дней', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 5)
+    const batch = {
+      delivered_at: d.toISOString().slice(0, 10),
+      flowers: { name: 'Тюльпан' },
+      suppliers: { name: 'Карлос' },
+    }
+    const text = formatStorage([batch])
+    assert.ok(text.includes('Тюльпан'))
+    assert.ok(text.includes('Карлос'))
+    assert.ok(text.includes('5 дн.'))
+  })
+
+  it('партия 5 дней → 🟢', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 5)
+    const batch = {
+      delivered_at: d.toISOString().slice(0, 10),
+      flowers: { name: 'Роза' },
+      suppliers: { name: 'Марина' },
+    }
+    assert.ok(formatStorage([batch]).includes('🟢'))
+  })
+
+  it('партия 15 дней → 🟡', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 15)
+    const batch = {
+      delivered_at: d.toISOString().slice(0, 10),
+      flowers: { name: 'Пион' },
+      suppliers: { name: 'Анна' },
+    }
+    assert.ok(formatStorage([batch]).includes('🟡'))
+  })
+
+  it('партия 25 дней → 🔴', () => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - 25)
+    const batch = {
+      delivered_at: d.toISOString().slice(0, 10),
+      flowers: { name: 'Хризантема' },
+      suppliers: { name: 'Борис' },
+    }
+    assert.ok(formatStorage([batch]).includes('🔴'))
+  })
+
+  it('дата форматируется как ДД.ММ', () => {
+    const batch = {
+      delivered_at: '2026-03-01',
+      flowers: { name: 'Роза' },
+      suppliers: { name: 'Марина' },
+    }
+    assert.ok(formatStorage([batch]).includes('01.03'))
+  })
 })
 
 // ─── handleText — поиск ───────────────────────────────────────────

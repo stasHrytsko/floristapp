@@ -1,6 +1,6 @@
 'use strict'
 
-const { getAllStock, getLowStock, searchFlowers, getFlowerStockById } = require('../lib/supabase')
+const { getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveBatches } = require('../lib/supabase')
 
 const STEPS = {
   MENU: 'MENU',
@@ -32,7 +32,10 @@ async function startStock(ctx) {
           { text: '📋 Все остатки', callback_data: 'st_all' },
           { text: '⚠️ Заканчивается', callback_data: 'st_low' },
         ],
-        [{ text: '🔍 Найти цветок', callback_data: 'st_search' }],
+        [
+          { text: '🔍 Найти цветок', callback_data: 'st_search' },
+          { text: '🕐 Хранение', callback_data: 'st_storage' },
+        ],
         CANCEL_ROW,
       ],
     },
@@ -64,6 +67,35 @@ function formatFlowerDetail(f) {
     `Зарезервировано: ${f.reserved}`,
     `Свободно: ${f.available}`,
   ].join('\n')
+}
+
+// Дней от deliveredAt (ГГГГ-ММ-ДД) до сегодня (UTC)
+function daysOnStorage(deliveredAt) {
+  const now = new Date()
+  const todayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const [yyyy, mm, dd] = deliveredAt.split('-').map(Number)
+  return Math.floor((todayMs - Date.UTC(yyyy, mm - 1, dd)) / 86400000)
+}
+
+// 🟢 0–10 д. / 🟡 11–20 д. / 🔴 21+ д.
+function storageIndicator(days) {
+  if (days <= 10) return '🟢'
+  if (days <= 20) return '🟡'
+  return '🔴'
+}
+
+function formatStorage(batches) {
+  if (batches.length === 0) return 'Нет партий на складе.'
+  const lines = ['🕐 Хранение партий:\n']
+  for (const b of batches) {
+    const [yyyy, mm, dd] = b.delivered_at.split('-').map(Number)
+    const days = daysOnStorage(b.delivered_at)
+    const icon = storageIndicator(days)
+    const dayStr = String(dd).padStart(2, '0')
+    const monStr = String(mm).padStart(2, '0')
+    lines.push(`${icon} ${b.flowers.name} (от ${b.suppliers.name}, ${dayStr}.${monStr}) — ${days} дн.`)
+  }
+  return lines.join('\n')
 }
 
 async function handleCallbackQuery(ctx) {
@@ -112,6 +144,21 @@ async function handleCallbackQuery(ctx) {
     clearSession(userId)
     await ctx.answerCbQuery()
     await ctx.editMessageText(formatLowStock(stock))
+    return true
+  }
+
+  if (data === 'st_storage' && session.step === STEPS.MENU) {
+    let batches
+    try {
+      batches = await getActiveBatches()
+    } catch {
+      await ctx.answerCbQuery()
+      await ctx.reply('Ошибка загрузки данных. Попробуй ещё раз.')
+      return true
+    }
+    clearSession(userId)
+    await ctx.answerCbQuery()
+    await ctx.editMessageText(formatStorage(batches))
     return true
   }
 
@@ -192,4 +239,7 @@ module.exports = {
   formatAllStock,
   formatLowStock,
   formatFlowerDetail,
+  formatStorage,
+  storageIndicator,
+  daysOnStorage,
 }
