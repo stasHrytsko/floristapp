@@ -37,31 +37,44 @@ describe('formatAllStock', () => {
     assert.equal(formatAllStock([]), 'Нет данных об остатках.')
   })
 
-  it('показывает название, свободно и зарезервировано', () => {
-    const stock = [
-      { name: 'Роза', available: 20, reserved: 5 },
-      { name: 'Тюльпан', available: 3, reserved: 0 },
-    ]
-    const text = formatAllStock(stock)
-    assert.ok(text.includes('Роза'))
-    assert.ok(text.includes('20 свободно'))
-    assert.ok(text.includes('5 зарезервировано'))
-    assert.ok(text.includes('Тюльпан'))
-    assert.ok(text.includes('3 свободно'))
-  })
-
   it('начинается с заголовка', () => {
     const stock = [{ name: 'Роза', available: 1, reserved: 0 }]
     assert.ok(formatAllStock(stock).startsWith('🌸 Все остатки'))
   })
 
-  it('каждый цветок на новой строке с маркером', () => {
+  it('показывает общее кол-во и свободно/зарезервировано', () => {
+    const stock = [{ name: 'Гортензия', available: 3, reserved: 1 }]
+    const text = formatAllStock(stock)
+    assert.ok(text.includes('Гортензия'))
+    assert.ok(text.includes('4'))   // total
+    assert.ok(text.includes('3 св.'))
+    assert.ok(text.includes('1 рез.'))
+  })
+
+  it('🟢 — положительный остаток', () => {
+    const stock = [{ name: 'Роза', available: 5, reserved: 0 }]
+    assert.ok(formatAllStock(stock).includes('🟢'))
+  })
+
+  it('⚪ — нулевой свободный остаток', () => {
+    const stock = [{ name: 'Пион', available: 0, reserved: 0 }]
+    assert.ok(formatAllStock(stock).includes('⚪'))
+  })
+
+  it('🔴 — отрицательный свободный остаток', () => {
+    const stock = [{ name: 'Роза', available: -2, reserved: 49 }]
+    assert.ok(formatAllStock(stock).includes('🔴'))
+  })
+
+  it('сортировка: 🔴 → ⚪ → 🟢', () => {
     const stock = [
-      { name: 'Роза', available: 10, reserved: 2 },
-      { name: 'Ирис', available: 5, reserved: 1 },
+      { name: 'Зелёный', available: 5, reserved: 0 },
+      { name: 'Белый', available: 0, reserved: 0 },
+      { name: 'Красный', available: -1, reserved: 10 },
     ]
     const text = formatAllStock(stock)
-    assert.equal((text.match(/^• /gm) || []).length, 2)
+    assert.ok(text.indexOf('🔴') < text.indexOf('⚪'))
+    assert.ok(text.indexOf('⚪') < text.indexOf('🟢'))
   })
 })
 
@@ -72,21 +85,40 @@ describe('formatLowStock', () => {
     assert.equal(formatLowStock([]), '✅ Все цветки в достаточном количестве.')
   })
 
-  it('показывает цветки с низким остатком', () => {
-    const stock = [
-      { name: 'Тюльпан', available: 2 },
-      { name: 'Хризантема', available: 0 },
-    ]
-    const text = formatLowStock(stock)
-    assert.ok(text.includes('Тюльпан'))
-    assert.ok(text.includes('2 свободно'))
-    assert.ok(text.includes('Хризантема'))
-    assert.ok(text.includes('0 свободно'))
+  it('начинается с заголовка предупреждения', () => {
+    const stock = [{ name: 'Роза', available: 1, reserved: 0 }]
+    assert.ok(formatLowStock(stock).startsWith('⚠️ Заканчивается'))
   })
 
-  it('начинается с заголовка предупреждения', () => {
-    const stock = [{ name: 'Роза', available: 1 }]
-    assert.ok(formatLowStock(stock).startsWith('⚠️ Заканчивается'))
+  it('показывает свободный остаток', () => {
+    const stock = [{ name: 'Тюльпан', available: 2, reserved: 0 }]
+    assert.ok(formatLowStock(stock).includes('2 св.'))
+  })
+
+  it('🟡 — положительный остаток в разделе «Заканчивается»', () => {
+    const stock = [{ name: 'Гортензия', available: 3, reserved: 1 }]
+    assert.ok(formatLowStock(stock).includes('🟡'))
+  })
+
+  it('⚪ — нулевой свободный остаток', () => {
+    const stock = [{ name: 'Ранункулюс', available: 0, reserved: 0 }]
+    assert.ok(formatLowStock(stock).includes('⚪'))
+  })
+
+  it('🔴 — отрицательный остаток', () => {
+    const stock = [{ name: 'Роза', available: -2, reserved: 49 }]
+    assert.ok(formatLowStock(stock).includes('🔴'))
+  })
+
+  it('сортировка: 🔴 → ⚪ → 🟡', () => {
+    const stock = [
+      { name: 'Жёлтый', available: 3, reserved: 0 },
+      { name: 'Белый', available: 0, reserved: 0 },
+      { name: 'Красный', available: -1, reserved: 5 },
+    ]
+    const text = formatLowStock(stock)
+    assert.ok(text.indexOf('🔴') < text.indexOf('⚪'))
+    assert.ok(text.indexOf('⚪') < text.indexOf('🟡'))
   })
 })
 
