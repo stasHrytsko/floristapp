@@ -64,7 +64,7 @@ async function startDelivery(ctx) {
 
 async function showSupplierSelect(ctx, suppliers) {
   const buttons = suppliers.map((s) => [
-    { text: s.name, callback_data: `sup:${s.id}:${s.name}` },
+    { text: s.name, callback_data: `sup:${s.id}` },
   ])
   buttons.push([{ text: '+ Новый поставщик', callback_data: 'sup:new' }])
   buttons.push([{ text: '❌ Отмена', callback_data: 'delivery:cancel' }])
@@ -76,7 +76,7 @@ async function showSupplierSelect(ctx, suppliers) {
 
 async function showFlowerSelect(ctx, flowers) {
   const buttons = flowers.map((f) => [
-    { text: f.name, callback_data: `flower:${f.id}:${f.name}` },
+    { text: f.name, callback_data: `flower:${f.id}` },
   ])
   buttons.push([{ text: '❌ Отмена', callback_data: 'delivery:cancel' }])
 
@@ -114,9 +114,10 @@ async function handleCallbackQuery(ctx) {
     }
 
     if (data.startsWith('sup:')) {
-      const [, id, ...nameParts] = data.split(':')
+      const id = data.slice(4)
+      const supplier = session.suppliers.find((s) => String(s.id) === id)
       session.supplierId = id
-      session.supplierName = nameParts.join(':')
+      session.supplierName = supplier ? supplier.name : id
       session.step = STEPS.FLOWER_SELECT
 
       let flowers
@@ -138,9 +139,10 @@ async function handleCallbackQuery(ctx) {
   }
 
   if (session.step === STEPS.FLOWER_SELECT && data.startsWith('flower:')) {
-    const [, id, ...nameParts] = data.split(':')
+    const id = data.slice(7)
+    const flower = session.flowers.find((f) => String(f.id) === id)
     session.currentFlowerId = id
-    session.currentFlowerName = nameParts.join(':')
+    session.currentFlowerName = flower ? flower.name : id
     session.step = STEPS.QUANTITY_INPUT
     setSession(userId, session)
 
