@@ -156,4 +156,48 @@ async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
   return defect.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, saveDelivery, saveDefect }
+async function getFlowerStock() {
+  const { data, error } = await supabase
+    .from('flower_stock')
+    .select('flower_id, name, available')
+    .gt('available', 0)
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+async function saveOrder({ clientName, clientPhone, deliveryType, address, readyAt, items }) {
+  const { data: order, error: orderErr } = await supabase
+    .from('orders')
+    .insert({
+      client_name: clientName,
+      client_phone: clientPhone,
+      delivery_type: deliveryType,
+      delivery_address: address,
+      ready_at: readyAt,
+    })
+    .select('id')
+    .single()
+  if (orderErr) throw orderErr
+
+  const orderItems = items.map((item) => ({
+    order_id: order.id,
+    flower_id: item.flowerId,
+    quantity: item.quantity,
+  }))
+  const { error: itemsErr } = await supabase.from('order_items').insert(orderItems)
+  if (itemsErr) throw itemsErr
+
+  const movements = items.map((item) => ({
+    flower_id: item.flowerId,
+    order_id: order.id,
+    movement_type: 'резерв',
+    quantity: item.quantity,
+  }))
+  const { error: movErr } = await supabase.from('movements').insert(movements)
+  if (movErr) throw movErr
+
+  return order.id
+}
+
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, saveDelivery, saveDefect, saveOrder }

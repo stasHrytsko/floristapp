@@ -6,6 +6,7 @@ const { Telegraf } = require('telegraf')
 const express = require('express')
 const delivery = require('./handlers/delivery')
 const defect = require('./handlers/defect')
+const order = require('./handlers/order')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const ALLOWED_ID = Number(process.env.ALLOWED_TELEGRAM_ID)
@@ -49,9 +50,7 @@ bot.help((ctx) => {
 bot.hears('📦 Поставка', (ctx) => delivery.startDelivery(ctx))
 bot.hears('⚠️ Брак', (ctx) => defect.startDefect(ctx))
 
-bot.hears('📋 Заказы', (ctx) => {
-  ctx.reply('Раздел «Заказы» — в разработке.')
-})
+bot.hears('📋 Заказы', (ctx) => order.startOrder(ctx))
 
 bot.hears('🌸 Остатки', (ctx) => {
   ctx.reply('Раздел «Остатки» — в разработке.')
@@ -62,6 +61,8 @@ bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data
   if (data.startsWith('ds_')) {
     await defect.handleCallbackQuery(ctx)
+  } else if (data.startsWith('no_')) {
+    await order.handleCallbackQuery(ctx)
   } else {
     await delivery.handleCallbackQuery(ctx)
   }
@@ -69,7 +70,10 @@ bot.on('callback_query', async (ctx) => {
 
 // Текстовые сообщения — сначала пробуем активные диалоги, иначе подсказка
 bot.on('text', async (ctx) => {
-  const handled = (await defect.handleText(ctx)) || (await delivery.handleText(ctx))
+  const handled =
+    (await defect.handleText(ctx)) ||
+    (await order.handleText(ctx)) ||
+    (await delivery.handleText(ctx))
   if (!handled) {
     ctx.reply('Используй кнопки меню ниже.', MAIN_MENU)
   }
