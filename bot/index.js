@@ -5,6 +5,7 @@ require('dotenv').config()
 const { Telegraf } = require('telegraf')
 const express = require('express')
 const delivery = require('./handlers/delivery')
+const defect = require('./handlers/defect')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const ALLOWED_ID = Number(process.env.ALLOWED_TELEGRAM_ID)
@@ -28,7 +29,7 @@ bot.use((ctx, next) => {
 const MAIN_MENU = {
   reply_markup: {
     keyboard: [
-      ['📦 Поставка'],
+      ['📦 Поставка', '⚠️ Брак'],
       ['📋 Заказы', '🌸 Остатки'],
     ],
     resize_keyboard: true,
@@ -46,6 +47,7 @@ bot.help((ctx) => {
 
 // Кнопки главного меню
 bot.hears('📦 Поставка', (ctx) => delivery.startDelivery(ctx))
+bot.hears('⚠️ Брак', (ctx) => defect.startDefect(ctx))
 
 bot.hears('📋 Заказы', (ctx) => {
   ctx.reply('Раздел «Заказы» — в разработке.')
@@ -55,12 +57,19 @@ bot.hears('🌸 Остатки', (ctx) => {
   ctx.reply('Раздел «Остатки» — в разработке.')
 })
 
-// Callback-кнопки (inline keyboard)
-bot.on('callback_query', (ctx) => delivery.handleCallbackQuery(ctx))
+// Callback-кнопки (inline keyboard) — роутинг по префиксу
+bot.on('callback_query', async (ctx) => {
+  const data = ctx.callbackQuery.data
+  if (data.startsWith('ds_')) {
+    await defect.handleCallbackQuery(ctx)
+  } else {
+    await delivery.handleCallbackQuery(ctx)
+  }
+})
 
-// Текстовые сообщения — сначала пробуем диалог, иначе подсказка
+// Текстовые сообщения — сначала пробуем активные диалоги, иначе подсказка
 bot.on('text', async (ctx) => {
-  const handled = await delivery.handleText(ctx)
+  const handled = (await defect.handleText(ctx)) || (await delivery.handleText(ctx))
   if (!handled) {
     ctx.reply('Используй кнопки меню ниже.', MAIN_MENU)
   }

@@ -95,4 +95,45 @@ async function saveDelivery({ supplierId, items, defectType, deliveredAt }) {
   return delivery.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, saveDelivery }
+async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
+  // Ищем последнюю партию этого цветка от этого поставщика
+  const { data: batch, error: batchErr } = await supabase
+    .from('batches')
+    .select('id')
+    .eq('flower_id', flowerId)
+    .eq('supplier_id', supplierId)
+    .order('delivered_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (batchErr || !batch) {
+    throw new Error('Партия не найдена. Сначала зафиксируй поставку.')
+  }
+
+  const resolution = defectType === 'гнилой' ? 'возврат' : 'скидка'
+
+  const { data: defect, error: defectErr } = await supabase
+    .from('defects')
+    .insert({ batch_id: batch.id, flower_id: flowerId, quantity, defect_type: defectType, resolution })
+    .select('id')
+    .single()
+  if (defectErr) throw defectErr
+
+  // Гнилые → уменьшаем остаток (движение «списание»)
+  if (defectType === 'гнилой') {
+    const { error: movErr } = await supabase
+      .from('movements')
+      .insert({
+        flower_id: flowerId,
+        batch_id: batch.id,
+        defect_id: defect.id,
+        movement_type: 'списание',
+        quantity,
+      })
+    if (movErr) throw movErr
+  }
+
+  return defect.id
+}
+
+module.exports = { getSuppliers, createSupplier, getFlowers, saveDelivery, saveDefect }
