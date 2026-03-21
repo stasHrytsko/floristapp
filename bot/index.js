@@ -25,9 +25,7 @@ bot.use((ctx, next) => {
 })
 
 bot.start((ctx) => {
-  ctx.reply(
-    'Привет! Я бот FloristApp.\n\nДоступные команды:\n/start — это сообщение'
-  )
+  ctx.reply('FloristApp Bot запущен')
 })
 
 bot.help((ctx) => {

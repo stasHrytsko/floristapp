@@ -27,6 +27,14 @@ function makeCtx(userId) {
   }
 }
 
+describe('/start response', () => {
+  it('отвечает "FloristApp Bot запущен" авторизованному пользователю', async () => {
+    const ctx = makeCtx(ALLOWED_ID)
+    await ctx.reply('FloristApp Bot запущен')
+    assert.equal(ctx.getReplies()[0], 'FloristApp Bot запущен')
+  })
+})
+
 describe('whitelist middleware', () => {
   it('пропускает авторизованного пользователя', async () => {
     const ctx = makeCtx(ALLOWED_ID)
