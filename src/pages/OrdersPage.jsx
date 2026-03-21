@@ -1,7 +1,7 @@
 import OrderCard from '../components/OrderCard'
 import { useOrders } from '../hooks/useOrders'
 
-export default function OrdersPage({ onNewOrder }) {
+export default function OrdersPage() {
   const { orders, loading, error, refresh } = useOrders()
 
   if (loading) {
@@ -21,12 +21,6 @@ export default function OrdersPage({ onNewOrder }) {
 
   return (
     <div className="space-y-3">
-      <button
-        onClick={onNewOrder}
-        className="w-full bg-green-600 text-white text-sm py-3 rounded-xl"
-      >
-        + Новый заказ
-      </button>
       {orders.length === 0 ? (
         <p className="text-center text-gray-400 mt-6 text-sm">Активных заказов нет</p>
       ) : (

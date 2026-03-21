@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useDeliveryStatus, DELIVERY_STATUSES } from '../hooks/useDeliveryStatus'
+import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
 
 const STATUS_STYLES = {
   'оформлено': 'bg-blue-100 text-blue-700',
@@ -38,24 +38,23 @@ export default function DeliveryCard({ delivery, onAccept, onRefresh }) {
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <span className="font-medium text-gray-900">
-            {suppliers?.name}
-            {has_issues && <span className="ml-1">⚠️</span>}
-          </span>
-          {delivered_at && (
-            <span className="block text-xs text-gray-400">{formatDate(delivered_at)}</span>
-          )}
-        </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle}`}>
+    <div className="bg-white rounded-2xl p-4 border border-gray-100">
+      <div className="flex items-start justify-between mb-1">
+        <span className="text-[17px] font-semibold text-gray-900 leading-tight">
+          {suppliers?.name}
+          {has_issues && <span className="ml-1">⚠️</span>}
+        </span>
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ml-2 whitespace-nowrap ${statusStyle}`}>
           {status}
         </span>
       </div>
 
+      {delivered_at && (
+        <p className="text-[13px] text-gray-400 mb-2">{formatDate(delivered_at)}</p>
+      )}
+
       {delivery_items.length > 0 && (
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-[14px] text-gray-500 mb-3">
           {delivery_items.map((i) => `${i.flowers?.name} × ${i.quantity}`).join(', ')}
         </p>
       )}
@@ -66,7 +65,7 @@ export default function DeliveryCard({ delivery, onAccept, onRefresh }) {
         <button
           onClick={goingToWarehouse ? onAccept : handleAdvance}
           disabled={advancing}
-          className="w-full border border-green-600 text-green-600 text-xs py-1.5 rounded-lg disabled:opacity-50"
+          className="w-full bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium disabled:opacity-50"
         >
           {advancing ? '...' : `→ ${next}`}
         </button>

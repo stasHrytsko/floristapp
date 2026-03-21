@@ -113,18 +113,18 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <div className="flex rounded-lg overflow-hidden border border-gray-200 mb-4">
+      <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5 mb-4">
         <button
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${
-            mode === 'flower' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'
+          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+            mode === 'flower' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => { setMode('flower'); setSelectedDelivery(null) }}
         >
           По цветку
         </button>
         <button
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${
-            mode === 'batch' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'
+          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+            mode === 'batch' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => { setMode('batch'); setFlowerId('') }}
         >

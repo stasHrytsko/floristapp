@@ -59,6 +59,12 @@ describe('SuppliersPage', () => {
     expect(screen.getByText('ЦветТорг')).toBeDefined()
   })
 
+  it('показывает счётчик "N из 5"', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    render(<SuppliersPage />)
+    expect(screen.getByText('2 из 5')).toBeDefined()
+  })
+
   it('кнопка «Добавить» активна когда < 5 поставщиков', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     render(<SuppliersPage />)

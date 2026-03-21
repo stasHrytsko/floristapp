@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import OrdersPage from '../pages/OrdersPage'
 import OrderCard from '../components/OrderCard'
 
@@ -53,23 +53,15 @@ describe('OrdersPage', () => {
 
   it('показывает сообщение при пустом списке', () => {
     useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn() })
-    render(<OrdersPage onNewOrder={vi.fn()} />)
+    render(<OrdersPage />)
     expect(screen.getByText(/активных заказов нет/i)).toBeDefined()
   })
 
   it('рендерит карточки заказов', () => {
     useOrders.mockReturnValue({ orders: mockOrders, loading: false, error: null, refresh: vi.fn() })
-    render(<OrdersPage onNewOrder={vi.fn()} />)
+    render(<OrdersPage />)
     expect(screen.getByText('Анна')).toBeDefined()
     expect(screen.getByText('Мария')).toBeDefined()
-  })
-
-  it('вызывает onNewOrder при нажатии кнопки', () => {
-    const onNewOrder = vi.fn()
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn() })
-    render(<OrdersPage onNewOrder={onNewOrder} />)
-    fireEvent.click(screen.getByText(/новый заказ/i))
-    expect(onNewOrder).toHaveBeenCalledOnce()
   })
 })
 
@@ -100,5 +92,15 @@ describe('OrderCard', () => {
   it('не показывает телефон если его нет', () => {
     render(<OrderCard order={mockOrders[1]} />)
     expect(screen.queryByText(/\+7/)).toBeNull()
+  })
+
+  it('показывает кнопку смены статуса когда передан onStatusChange', () => {
+    render(<OrderCard order={mockOrders[0]} onStatusChange={vi.fn()} />)
+    expect(screen.getByText(/→ в работе/)).toBeDefined()
+  })
+
+  it('не показывает кнопку смены статуса без onStatusChange', () => {
+    render(<OrderCard order={mockOrders[0]} />)
+    expect(screen.queryByText(/→/)).toBeNull()
   })
 })

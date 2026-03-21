@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useDelivery } from '../hooks/useDelivery'
@@ -11,7 +11,7 @@ function newRow() {
   return { id: Date.now() + Math.random(), flowerId: '', quantity: '' }
 }
 
-export default function DeliveryPage() {
+export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState('active')
   const [acceptingDelivery, setAcceptingDelivery] = useState(null)
@@ -32,6 +32,15 @@ export default function DeliveryPage() {
   const [newFlowerRowId, setNewFlowerRowId] = useState(null)
   const [newFlowerName, setNewFlowerName] = useState('')
   const [addingFlower, setAddingFlower] = useState(false)
+
+  useEffect(() => {
+    if (addFormOpen) setShowForm(true)
+  }, [addFormOpen])
+
+  function handleFormClose() {
+    setShowForm(false)
+    onAddFormClose?.()
+  }
 
   function updateRow(id, patch) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
@@ -79,6 +88,7 @@ export default function DeliveryPage() {
       setSupplierId('')
       setDeliveredAt(new Date().toISOString().split('T')[0])
       setShowForm(false)
+      onAddFormClose?.()
       refresh()
     } catch (err) {
       setError(err.message || 'Ошибка сохранения')
@@ -108,18 +118,16 @@ export default function DeliveryPage() {
         </p>
       )}
 
-      <button
-        onClick={() => setShowForm((v) => !v)}
-        className="w-full bg-green-600 text-white text-sm py-3 rounded-xl"
-      >
-        {showForm ? 'Скрыть форму' : '+ Новая поставка'}
-      </button>
-
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-gray-800 text-sm">Новая поставка</p>
+            <button type="button" onClick={handleFormClose} className="text-gray-400 text-lg leading-none">✕</button>
+          </div>
+
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Поставщик</label>
               <select
@@ -147,7 +155,7 @@ export default function DeliveryPage() {
           </div>
 
           {rows.map((row, idx) => (
-            <div key={row.id} className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+            <div key={row.id} className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 font-medium">Позиция {idx + 1}</span>
                 {rows.length > 1 && (
@@ -236,19 +244,19 @@ export default function DeliveryPage() {
         </form>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5">
         <button
           onClick={() => setFilter('active')}
-          className={`flex-1 py-2 text-sm rounded-xl border ${
-            filter === 'active' ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-600'
+          className={`flex-1 py-2 text-sm rounded-full transition-colors font-medium ${
+            filter === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
         >
           Активные
         </button>
         <button
           onClick={() => setFilter('all')}
-          className={`flex-1 py-2 text-sm rounded-xl border ${
-            filter === 'all' ? 'bg-green-600 text-white border-green-600' : 'border-gray-300 text-gray-600'
+          className={`flex-1 py-2 text-sm rounded-full transition-colors font-medium ${
+            filter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
         >
           Все

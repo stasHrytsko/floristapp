@@ -71,12 +71,14 @@ function AddFlowerModal({ onSave, onClose }) {
   )
 }
 
-export default function StockPage() {
+export default function StockPage({ addModalOpen, onAddClose }) {
   const { flowers, loading, error, refresh } = useFlowerStock()
   const { updateThreshold } = useAddFlower()
-  const [showAddModal, setShowAddModal] = useState(false)
 
   const lowStockCount = flowers.filter((f) => f.available <= f.low_stock_threshold).length
+  const totalAvailable = flowers.reduce((s, f) => s + (f.available || 0), 0)
+  const totalReserved = flowers.reduce((s, f) => s + (f.reserved || 0), 0)
+  const totalAll = flowers.reduce((s, f) => s + (f.total || 0), 0)
 
   async function handleThresholdChange(flowerId, threshold) {
     await updateThreshold(flowerId, threshold)
@@ -100,6 +102,25 @@ export default function StockPage() {
 
   return (
     <div>
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
+          <p className="text-lg font-bold text-green-600">{totalAvailable}</p>
+          <p className="text-[11px] text-gray-400 leading-tight">свободно</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
+          <p className="text-lg font-bold text-yellow-500">{totalReserved}</p>
+          <p className="text-[11px] text-gray-400 leading-tight">резерв</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
+          <p className="text-lg font-bold text-gray-600">{totalAll}</p>
+          <p className="text-[11px] text-gray-400 leading-tight">всего</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
+          <p className="text-lg font-bold text-gray-600">{flowers.length}</p>
+          <p className="text-[11px] text-gray-400 leading-tight">видов</p>
+        </div>
+      </div>
+
       {lowStockCount > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
           <span className="text-yellow-700 text-sm font-medium">
@@ -107,15 +128,6 @@ export default function StockPage() {
           </span>
         </div>
       )}
-
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="text-sm text-green-600 font-medium"
-        >
-          + Добавить цветок
-        </button>
-      </div>
 
       {flowers.length === 0 ? (
         <p className="text-center text-gray-400 mt-10 text-sm">Цветы ещё не добавлены</p>
@@ -131,10 +143,10 @@ export default function StockPage() {
         </div>
       )}
 
-      {showAddModal && (
+      {addModalOpen && (
         <AddFlowerModal
-          onSave={() => { setShowAddModal(false); refresh() }}
-          onClose={() => setShowAddModal(false)}
+          onSave={() => { onAddClose(); refresh() }}
+          onClose={onAddClose}
         />
       )}
     </div>
