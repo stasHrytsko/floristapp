@@ -1,6 +1,7 @@
 'use strict'
 
 const { getFlowerStock, saveOrder, getActiveOrders, updateOrderStatus } = require('../lib/supabase')
+const { createSessionStore } = require('../lib/sessionStore')
 
 const STEPS = {
   MENU: 'MENU',
@@ -46,17 +47,7 @@ function formatReadyAt(isoDate) {
   return `${dd}.${mm}.${yyyy}`
 }
 
-const sessions = new Map()
-
-function getSession(userId) {
-  return sessions.get(userId)
-}
-function setSession(userId, session) {
-  sessions.set(userId, session)
-}
-function clearSession(userId) {
-  sessions.delete(userId)
-}
+const { getSession, setSession, clearSession, isExpired } = createSessionStore()
 
 const CANCEL_ROW = [{ text: '❌ Отмена', callback_data: 'no_cancel' }]
 
@@ -398,7 +389,14 @@ async function handleCallbackQuery(ctx) {
 async function handleText(ctx) {
   const userId = ctx.from.id
   const session = getSession(userId)
-  if (!session) return false
+  if (!session) {
+    if (isExpired(userId)) {
+      clearSession(userId)
+      await ctx.reply('Сессия истекла. Начни заново через меню.')
+      return true
+    }
+    return false
+  }
 
   const text = ctx.message.text.trim()
 
