@@ -257,4 +257,15 @@ async function saveOrder({ clientName, clientPhone, deliveryType, address, ready
   return order.id
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder }
+// Активные партии на складе (quantity > 0), от старых к новым
+async function getActiveBatches() {
+  const { data, error } = await supabase
+    .from('batches')
+    .select('id, quantity, delivered_at, flowers(name), suppliers(name)')
+    .gt('quantity', 0)
+    .order('delivered_at')
+  if (error) throw error
+  return data
+}
+
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder, getActiveBatches }
