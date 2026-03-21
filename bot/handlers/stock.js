@@ -42,20 +42,36 @@ async function startStock(ctx) {
   })
 }
 
+// 🔴 < 0, ⚪ = 0 свободных, 🟢 > 0
+function stockIcon(available) {
+  if (available < 0) return '🔴'
+  if (available === 0) return '⚪'
+  return '🟢'
+}
+
+const STOCK_SORT = { '🔴': 0, '⚪': 1, '🟢': 2, '🟡': 2 }
+
 function formatAllStock(stock) {
   if (stock.length === 0) return 'Нет данных об остатках.'
+  const items = stock
+    .map((f) => ({ f, icon: stockIcon(f.available), total: f.available + f.reserved }))
+    .sort((a, b) => STOCK_SORT[a.icon] - STOCK_SORT[b.icon])
   const lines = ['🌸 Все остатки:\n']
-  for (const f of stock) {
-    lines.push(`• ${f.name} — ${f.available} свободно, ${f.reserved} зарезервировано`)
+  for (const { f, icon, total } of items) {
+    lines.push(`${icon} ${f.name} — ${total} (${f.available} св. · ${f.reserved} рез.)`)
   }
   return lines.join('\n')
 }
 
 function formatLowStock(stock) {
   if (stock.length === 0) return '✅ Все цветки в достаточном количестве.'
+  // В разделе «Заканчивается» позитивный остаток → 🟡 (предупреждение)
+  const items = stock
+    .map((f) => ({ f, icon: f.available < 0 ? '🔴' : f.available === 0 ? '⚪' : '🟡' }))
+    .sort((a, b) => STOCK_SORT[a.icon] - STOCK_SORT[b.icon])
   const lines = ['⚠️ Заканчивается:\n']
-  for (const f of stock) {
-    lines.push(`• ${f.name} — ${f.available} свободно`)
+  for (const { f, icon } of items) {
+    lines.push(`${icon} ${f.name} — ${f.available} св.`)
   }
   return lines.join('\n')
 }
