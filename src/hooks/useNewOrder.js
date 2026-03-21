@@ -2,6 +2,22 @@ import { supabase } from '../lib/supabase'
 
 export function useNewOrder() {
   async function saveOrder({ clientName, clientPhone, readyAt, deliveryType, address, items }) {
+    // Повторная проверка остатков перед записью
+    const flowerIds = items.map((i) => i.flowerId)
+    const { data: stock, error: stockErr } = await supabase
+      .from('flower_stock')
+      .select('flower_id, name, available')
+      .in('flower_id', flowerIds)
+    if (stockErr) throw stockErr
+    for (const item of items) {
+      const s = stock?.find((s) => s.flower_id === item.flowerId)
+      if (!s || item.quantity > s.available) {
+        const name = s?.name ?? 'цветка'
+        const avail = s?.available ?? 0
+        throw new Error(`На складе только ${avail} ${name.toLowerCase()}`)
+      }
+    }
+
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
