@@ -4,6 +4,7 @@ require('dotenv').config()
 
 const { Telegraf } = require('telegraf')
 const express = require('express')
+const delivery = require('./handlers/delivery')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const ALLOWED_ID = Number(process.env.ALLOWED_TELEGRAM_ID)
@@ -24,19 +25,45 @@ bot.use((ctx, next) => {
   return next()
 })
 
+const MAIN_MENU = {
+  reply_markup: {
+    keyboard: [
+      ['📦 Поставка'],
+      ['📋 Заказы', '🌸 Остатки'],
+    ],
+    resize_keyboard: true,
+    persistent: true,
+  },
+}
+
 bot.start((ctx) => {
-  ctx.reply(
-    'Привет! Я бот FloristApp.\n\nДоступные команды:\n/start — это сообщение'
-  )
+  ctx.reply('Привет! Выбери действие:', MAIN_MENU)
 })
 
 bot.help((ctx) => {
-  ctx.reply('Доступные команды:\n/start — приветствие')
+  ctx.reply('Выбери действие из меню ниже.', MAIN_MENU)
 })
 
-// Неизвестные команды
-bot.on('text', (ctx) => {
-  ctx.reply('Неизвестная команда. Напиши /start чтобы начать.')
+// Кнопки главного меню
+bot.hears('📦 Поставка', (ctx) => delivery.startDelivery(ctx))
+
+bot.hears('📋 Заказы', (ctx) => {
+  ctx.reply('Раздел «Заказы» — в разработке.')
+})
+
+bot.hears('🌸 Остатки', (ctx) => {
+  ctx.reply('Раздел «Остатки» — в разработке.')
+})
+
+// Callback-кнопки (inline keyboard)
+bot.on('callback_query', (ctx) => delivery.handleCallbackQuery(ctx))
+
+// Текстовые сообщения — сначала пробуем диалог, иначе подсказка
+bot.on('text', async (ctx) => {
+  const handled = await delivery.handleText(ctx)
+  if (!handled) {
+    ctx.reply('Используй кнопки меню ниже.', MAIN_MENU)
+  }
 })
 
 async function launch() {
