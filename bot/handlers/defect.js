@@ -1,6 +1,6 @@
 'use strict'
 
-const { getSuppliers, getFlowers, saveDefect } = require('../lib/supabase')
+const { getSuppliers, getFlowersBySupplier, saveDefect } = require('../lib/supabase')
 
 const STEPS = {
   SUPPLIER_SELECT: 'SUPPLIER_SELECT',
@@ -107,10 +107,16 @@ async function handleCallbackQuery(ctx) {
 
     let flowers
     try {
-      flowers = await getFlowers()
+      flowers = await getFlowersBySupplier(id)
     } catch {
       await ctx.answerCbQuery()
       await ctx.reply('Ошибка загрузки цветов. Попробуй ещё раз.')
+      return true
+    }
+    if (flowers.length === 0) {
+      await ctx.answerCbQuery()
+      await ctx.reply('У этого поставщика нет активных партий. Выбери другого.')
+      clearSession(userId)
       return true
     }
     session.flowers = flowers
