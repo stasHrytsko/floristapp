@@ -53,7 +53,7 @@ create table deliveries (
   id uuid primary key default gen_random_uuid(),
   supplier_id uuid references suppliers(id),
   delivered_at date not null default current_date,
-  status text not null default 'оформлено' check (status in ('оформлено', 'оплачено', 'доставка', 'на складе')),
+  status text not null default 'заказано' check (status in ('заказано', 'на складе')),
   has_issues boolean default false,
   created_at timestamptz default now()
 );

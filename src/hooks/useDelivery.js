@@ -4,7 +4,7 @@ export function useDelivery() {
   async function saveDelivery({ supplierId, deliveredAt, items }) {
     const { data: delivery, error: delErr } = await supabase
       .from('deliveries')
-      .insert({ supplier_id: supplierId, delivered_at: deliveredAt, status: 'оформлено' })
+      .insert({ supplier_id: supplierId, delivered_at: deliveredAt, status: 'заказано' })
       .select('id')
       .single()
     if (delErr) throw delErr

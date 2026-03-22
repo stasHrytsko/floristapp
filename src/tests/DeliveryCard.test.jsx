@@ -4,12 +4,12 @@ import DeliveryCard from '../components/DeliveryCard'
 
 vi.mock('../hooks/useDeliveryStatus', () => ({
   useDeliveryStatus: vi.fn(),
-  DELIVERY_STATUSES: ['оформлено', 'оплачено', 'доставка', 'на складе'],
+  DELIVERY_STATUSES: ['заказано', 'на складе'],
 }))
 
 import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
 
-const mockDelivery = (status = 'оформлено', has_issues = false) => ({
+const mockDelivery = (status = 'заказано', has_issues = false) => ({
   id: '1',
   delivered_at: '2026-03-17',
   status,
@@ -25,7 +25,7 @@ const mockDelivery = (status = 'оформлено', has_issues = false) => ({
 function setup(advanceFn) {
   const advanceStatus = advanceFn ?? vi.fn().mockResolvedValue(undefined)
   const nextStatus = (s) => {
-    const arr = ['оформлено', 'оплачено', 'доставка', 'на складе']
+    const arr = ['заказано', 'на складе']
     const idx = arr.indexOf(s)
     return idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : null
   }
@@ -52,8 +52,8 @@ describe('DeliveryCard', () => {
 
   it('показывает текущий статус', () => {
     setup()
-    render(<DeliveryCard delivery={mockDelivery('оплачено')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText('оплачено')).toBeDefined()
+    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
+    expect(screen.getByText('заказано')).toBeDefined()
   })
 
   it('показывает ⚠️ если есть проблемы', () => {
@@ -62,10 +62,10 @@ describe('DeliveryCard', () => {
     expect(screen.getByText(/⚠️/)).toBeDefined()
   })
 
-  it('показывает кнопку следующего статуса', () => {
+  it('показывает кнопку «→ на складе» для статуса «заказано»', () => {
     setup()
-    render(<DeliveryCard delivery={mockDelivery('оплачено')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText(/→ доставка/)).toBeDefined()
+    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
+    expect(screen.getByText(/→ на складе/)).toBeDefined()
   })
 
   it('не показывает кнопку на последнем статусе', () => {
@@ -74,19 +74,10 @@ describe('DeliveryCard', () => {
     expect(screen.queryByRole('button', { name: /→/ })).toBeNull()
   })
 
-  it('вызывает advanceStatus при обычном переходе', async () => {
-    const { advanceStatus } = setup()
-    const onRefresh = vi.fn()
-    render(<DeliveryCard delivery={mockDelivery('оформлено')} onAccept={vi.fn()} onRefresh={onRefresh} />)
-    fireEvent.click(screen.getByText(/→ оплачено/))
-    await waitFor(() => expect(advanceStatus).toHaveBeenCalledWith('1', 'оформлено'))
-    await waitFor(() => expect(onRefresh).toHaveBeenCalled())
-  })
-
   it('вызывает onAccept при переходе в "на складе"', () => {
     setup()
     const onAccept = vi.fn()
-    render(<DeliveryCard delivery={mockDelivery('доставка')} onAccept={onAccept} onRefresh={vi.fn()} />)
+    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={onAccept} onRefresh={vi.fn()} />)
     fireEvent.click(screen.getByText(/→ на складе/))
     expect(onAccept).toHaveBeenCalled()
   })
