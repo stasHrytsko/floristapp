@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const FINAL_STATUSES = ['выдан клиенту', 'доставлен клиенту']
+const FINAL_STATUSES = ['выдан', 'доставлен']
 
 export function useOrders() {
   const [orders, setOrders] = useState([])

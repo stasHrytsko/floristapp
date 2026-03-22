@@ -6,6 +6,8 @@ const STATUS_STYLES = {
   'в работе': 'bg-yellow-100 text-yellow-700',
   'готов к выдаче': 'bg-green-100 text-green-700',
   'готов к доставке': 'bg-green-100 text-green-700',
+  'выдан': 'bg-gray-100 text-gray-500',
+  'доставлен': 'bg-gray-100 text-gray-500',
 }
 
 function nextOrderStatus(status, deliveryType) {
@@ -13,6 +15,8 @@ function nextOrderStatus(status, deliveryType) {
   if (status === 'в работе') {
     return deliveryType === 'доставка' ? 'готов к доставке' : 'готов к выдаче'
   }
+  if (status === 'готов к выдаче') return 'выдан'
+  if (status === 'готов к доставке') return 'доставлен'
   return null
 }
 
