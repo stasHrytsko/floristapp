@@ -1,6 +1,7 @@
 'use strict'
 
 const { getSuppliers, getFlowersBySupplier, saveDefect } = require('../lib/supabase')
+const { createSessionStore } = require('../lib/sessionStore')
 
 const STEPS = {
   SUPPLIER_SELECT: 'SUPPLIER_SELECT',
@@ -10,12 +11,7 @@ const STEPS = {
   CONFIRM: 'CONFIRM',
 }
 
-// Хранилище состояний по Telegram ID
-const sessions = new Map()
-
-function getSession(userId) { return sessions.get(userId) }
-function setSession(userId, data) { sessions.set(userId, data) }
-function clearSession(userId) { sessions.delete(userId) }
+const { getSession, setSession, clearSession, isExpired } = createSessionStore()
 
 function formatSummary(session) {
   const typeLabel = session.defectType === 'гнилой' ? '🗑 Гнилые' : '🎨 Не тот цвет'
@@ -200,7 +196,14 @@ async function handleCallbackQuery(ctx) {
 async function handleText(ctx) {
   const userId = ctx.from.id
   const session = getSession(userId)
-  if (!session) return false
+  if (!session) {
+    if (isExpired(userId)) {
+      clearSession(userId)
+      await ctx.reply('Сессия истекла. Начни заново через меню.')
+      return true
+    }
+    return false
+  }
 
   if (session.step === STEPS.QUANTITY_INPUT) {
     const qty = parseInt(ctx.message.text.trim(), 10)

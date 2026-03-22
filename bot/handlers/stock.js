@@ -1,6 +1,7 @@
 'use strict'
 
 const { getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveBatches } = require('../lib/supabase')
+const { createSessionStore } = require('../lib/sessionStore')
 
 const STEPS = {
   MENU: 'MENU',
@@ -8,17 +9,7 @@ const STEPS = {
   SEARCH_SELECT: 'SEARCH_SELECT',
 }
 
-const sessions = new Map()
-
-function getSession(userId) {
-  return sessions.get(userId)
-}
-function setSession(userId, s) {
-  sessions.set(userId, s)
-}
-function clearSession(userId) {
-  sessions.delete(userId)
-}
+const { getSession, setSession, clearSession, isExpired } = createSessionStore()
 
 const CANCEL_ROW = [{ text: '❌ Отмена', callback_data: 'st_cancel' }]
 
@@ -211,7 +202,14 @@ async function handleCallbackQuery(ctx) {
 async function handleText(ctx) {
   const userId = ctx.from.id
   const session = getSession(userId)
-  if (!session) return false
+  if (!session) {
+    if (isExpired(userId)) {
+      clearSession(userId)
+      await ctx.reply('Сессия истекла. Начни заново через меню.')
+      return true
+    }
+    return false
+  }
 
   if (session.step === STEPS.SEARCH_INPUT) {
     const query = ctx.message.text.trim()
