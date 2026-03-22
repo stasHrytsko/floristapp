@@ -25,20 +25,26 @@ function FlowerDetailsSheet({ flower, onClose }) {
         ) : batches.length === 0 ? (
           <p className="text-sm text-gray-400 text-center">Нет партий</p>
         ) : (
-          <div className="space-y-3">
-            {batches.map((b) => (
-              <div key={b.id} className="border border-gray-100 rounded-xl p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-700">{b.delivered_at}</span>
-                  <span className="font-medium text-gray-900">{b.quantity} шт</span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>{b.suppliers?.name || '—'}</span>
-                  <span>{daysSince(b.delivered_at)} дн. на складе</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-gray-400 border-b border-gray-100">
+                <th className="text-left pb-2 font-medium">Дата</th>
+                <th className="text-left pb-2 font-medium">Поставщик</th>
+                <th className="text-right pb-2 font-medium">Кол-во</th>
+                <th className="text-right pb-2 font-medium">Дней на складе</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((b) => (
+                <tr key={b.id} className="border-b border-gray-50 last:border-0">
+                  <td className="py-2 text-gray-700">{b.delivered_at}</td>
+                  <td className="py-2 text-gray-500">{b.suppliers?.name || '—'}</td>
+                  <td className="py-2 text-right font-medium text-gray-900">{b.quantity} шт</td>
+                  <td className="py-2 text-right text-gray-400">{daysSince(b.delivered_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
