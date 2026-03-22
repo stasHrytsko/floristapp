@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase'
 
-export const DELIVERY_STATUSES = ['оформлено', 'оплачено', 'доставка', 'на складе']
+export const DELIVERY_STATUSES = ['заказано', 'на складе']
 
 export function useDeliveryStatus() {
   function nextStatus(current) {

@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
 
 const STATUS_STYLES = {
-  'оформлено': 'bg-blue-100 text-blue-700',
-  'оплачено': 'bg-yellow-100 text-yellow-700',
-  'доставка': 'bg-orange-100 text-orange-700',
+  'заказано': 'bg-blue-100 text-blue-700',
   'на складе': 'bg-green-100 text-green-700',
 }
 

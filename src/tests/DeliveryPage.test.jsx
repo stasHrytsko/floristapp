@@ -22,7 +22,7 @@ const mockDeliveries = [
   {
     id: 'd1',
     delivered_at: '2026-03-17',
-    status: 'оформлено',
+    status: 'заказано',
     has_issues: false,
     supplier_id: '1',
     suppliers: { name: 'Розы опт' },
@@ -33,7 +33,7 @@ const mockDeliveries = [
 // DeliveryCard uses useDeliveryStatus internally — mock it
 vi.mock('../hooks/useDeliveryStatus', () => ({
   useDeliveryStatus: vi.fn(),
-  DELIVERY_STATUSES: ['оформлено', 'оплачено', 'доставка', 'на складе'],
+  DELIVERY_STATUSES: ['заказано', 'на складе'],
 }))
 import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
 
@@ -47,7 +47,7 @@ function setup(saveDeliveryOverride) {
   useDeliveryStatus.mockReturnValue({
     advanceStatus: vi.fn().mockResolvedValue(undefined),
     nextStatus: (s) => {
-      const arr = ['оформлено', 'оплачено', 'доставка', 'на складе']
+      const arr = ['заказано', 'на складе']
       const idx = arr.indexOf(s)
       return idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : null
     },
