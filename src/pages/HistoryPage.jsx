@@ -18,12 +18,6 @@ function formatShortDate(dateStr) {
     .replace(/\.$/, '')
 }
 
-function posLabel(n) {
-  if (n === 1) return '1 позиция'
-  if (n >= 2 && n <= 4) return `${n} позиции`
-  return `${n} позиций`
-}
-
 function getMovementDisplay(m) {
   const deliveryItem = m.batches?.delivery_items?.[0]
   const isWrongOrder =
@@ -59,57 +53,36 @@ function getMovementDisplay(m) {
   }
 }
 
-function BatchPopup({ delivery, onClose }) {
-  const items = delivery.delivery_items || []
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
-      <div
-        className="bg-white w-full rounded-t-2xl p-5 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="font-semibold text-gray-800">
-            {formatDate(delivery.delivered_at)} · {delivery.suppliers?.name}
-          </p>
-          <button onClick={onClose} className="text-gray-400 text-lg leading-none">✕</button>
-        </div>
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.id} className="flex justify-between text-sm text-gray-700">
-              <span>{item.flowers?.name}</span>
-              <span className="font-medium">{item.quantity} шт</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )
+function groupByDate(deliveries) {
+  const map = {}
+  deliveries.forEach((d) => {
+    const date = d.delivered_at
+    if (!map[date]) map[date] = []
+    ;(d.delivery_items || []).forEach((item) => {
+      map[date].push({
+        flower: item.flowers?.name || '—',
+        supplier: d.suppliers?.name || '—',
+        quantity: item.quantity,
+      })
+    })
+  })
+  return Object.keys(map)
+    .sort((a, b) => b.localeCompare(a))
+    .map((date) => ({ date, items: map[date] }))
 }
 
 export default function HistoryPage() {
   const [mode, setMode] = useState('flower')
   const [flowerId, setFlowerId] = useState('')
-  const [selectedDelivery, setSelectedDelivery] = useState(null)
-  const [showPopup, setShowPopup] = useState(false)
 
   const { flowers } = useFlowerStock()
   const { deliveries } = useBatchDeliveries()
-
-  const batchIds =
-    selectedDelivery?.delivery_items
-      ?.filter((di) => di.batch_id)
-      .map((di) => di.batch_id) || null
-
   const { movements, loading, error, refresh } = useMovementHistory(
     mode === 'flower' ? flowerId || null : null,
-    mode === 'batch' ? batchIds : null
+    null
   )
 
-  function handleDeliverySelect(deliveryId) {
-    const d = deliveries.find((d) => d.id === deliveryId)
-    setSelectedDelivery(d || null)
-    if (d) setShowPopup(true)
-  }
+  const dateGroups = mode === 'date' ? groupByDate(deliveries) : []
 
   return (
     <div>
@@ -118,17 +91,17 @@ export default function HistoryPage() {
           className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
             mode === 'flower' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
-          onClick={() => { setMode('flower'); setSelectedDelivery(null) }}
+          onClick={() => setMode('flower')}
         >
           По цветку
         </button>
         <button
           className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
-            mode === 'batch' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            mode === 'date' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
-          onClick={() => { setMode('batch'); setFlowerId('') }}
+          onClick={() => { setMode('date'); setFlowerId('') }}
         >
-          По партии
+          По дате
         </button>
       </div>
 
@@ -147,30 +120,41 @@ export default function HistoryPage() {
         </select>
       )}
 
-      {mode === 'batch' && (
-        <select
-          value={selectedDelivery?.id || ''}
-          onChange={(e) => handleDeliverySelect(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white mb-4"
-        >
-          <option value="">Выбрать партию</option>
-          {deliveries.map((d) => (
-            <option key={d.id} value={d.id}>
-              {formatDate(d.delivered_at)} · {d.suppliers?.name} · {posLabel(d.delivery_items?.length || 0)}
-            </option>
-          ))}
-        </select>
+      {mode === 'date' && (
+        dateGroups.length === 0 ? (
+          <p className="text-center text-gray-400 text-sm mt-6">Поставок нет</p>
+        ) : (
+          <div className="space-y-4">
+            {dateGroups.map(({ date, items }) => (
+              <div key={date}>
+                <p className="text-xs font-semibold text-gray-400 uppercase mb-2">
+                  {formatDate(date)}
+                </p>
+                <div className="space-y-2">
+                  {items.map((item, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-lg px-4 py-3 shadow-sm flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{item.flower}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{item.supplier}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-green-600">+{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
 
-      {showPopup && selectedDelivery && (
-        <BatchPopup delivery={selectedDelivery} onClose={() => setShowPopup(false)} />
-      )}
-
-      {loading && (
+      {mode === 'flower' && loading && (
         <p className="text-center text-gray-400 text-sm mt-6">Загрузка...</p>
       )}
 
-      {error && (
+      {mode === 'flower' && error && (
         <div className="text-center mt-6">
           <p className="text-red-500 text-sm mb-2">{error}</p>
           <button onClick={refresh} className="text-sm text-green-600 underline">
@@ -179,7 +163,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {!loading && !error && movements.length > 0 && (
+      {mode === 'flower' && !loading && !error && movements.length > 0 && (
         <ul className="space-y-2">
           {movements.map((m) => {
             const { label, tagClass, sign, extra } = getMovementDisplay(m)

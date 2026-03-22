@@ -17,8 +17,8 @@ import { useMovementHistory } from '../hooks/useMovementHistory'
 import { useBatchDeliveries } from '../hooks/useBatchDeliveries'
 
 const FLOWERS = [
-  { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8, stale: false },
-  { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 0, available: 5, stale: false },
+  { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8 },
+  { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 0, available: 5 },
 ]
 
 const DELIVERIES = [
@@ -27,8 +27,16 @@ const DELIVERIES = [
     delivered_at: '2026-03-17',
     suppliers: { name: 'Марина' },
     delivery_items: [
-      { id: 'di1', flower_id: '1', quantity: 100, batch_id: 'b1', flowers: { name: 'Роза' } },
-      { id: 'di2', flower_id: '2', quantity: 50, batch_id: 'b2', flowers: { name: 'Тюльпан' } },
+      { id: 'di1', quantity: 100, flowers: { name: 'Роза' } },
+      { id: 'di2', quantity: 50, flowers: { name: 'Тюльпан' } },
+    ],
+  },
+  {
+    id: 'd2',
+    delivered_at: '2026-03-20',
+    suppliers: { name: 'Флора' },
+    delivery_items: [
+      { id: 'di3', quantity: 30, flowers: { name: 'Роза' } },
     ],
   },
 ]
@@ -44,7 +52,7 @@ describe('HistoryPage', () => {
   it('показывает переключатель режимов', () => {
     render(<HistoryPage />)
     expect(screen.getByText('По цветку')).toBeDefined()
-    expect(screen.getByText('По партии')).toBeDefined()
+    expect(screen.getByText('По дате')).toBeDefined()
   })
 
   it('в режиме по цветку показывает фильтр со списком цветов', () => {
@@ -182,21 +190,37 @@ describe('HistoryPage', () => {
     expect(screen.getByText('⚠️ красные вместо белых')).toBeDefined()
   })
 
-  it('переключается в режим по партии', () => {
+  it('переключается в режим по дате', () => {
     render(<HistoryPage />)
-    fireEvent.click(screen.getByText('По партии'))
-    expect(screen.getByText('Выбрать партию')).toBeDefined()
-    expect(screen.getByText(/Марина/)).toBeDefined()
+    fireEvent.click(screen.getByText('По дате'))
+    expect(screen.queryByText('Все цветы')).toBeNull()
   })
 
-  it('открывает попап при выборе партии', () => {
+  it('в режиме по дате показывает поставки сгруппированные по дате (новые сверху)', () => {
     render(<HistoryPage />)
-    fireEvent.click(screen.getByText('По партии'))
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'd1' } })
-    expect(screen.getByText('Роза')).toBeDefined()
-    expect(screen.getByText('100 шт')).toBeDefined()
-    expect(screen.getByText('50 шт')).toBeDefined()
+    fireEvent.click(screen.getByText('По дате'))
+    const dates = screen.getAllByText(/\d{2}\.\d{2}\.\d{2}/)
+    expect(dates.length).toBeGreaterThanOrEqual(2)
+    // 2026-03-20 должна быть выше 2026-03-17
+    const allText = screen.getAllByText(/\d{2}\.\d{2}\.\d{2}/).map((el) => el.textContent)
+    expect(allText[0]).toBe('20.03.26')
+    expect(allText[1]).toBe('17.03.26')
+  })
+
+  it('в режиме по дате показывает цветок, поставщика и количество', () => {
+    render(<HistoryPage />)
+    fireEvent.click(screen.getByText('По дате'))
+    expect(screen.getByText('Флора')).toBeDefined()
+    expect(screen.getAllByText('Марина').length).toBeGreaterThan(0)
+    expect(screen.getByText('+100')).toBeDefined()
+    expect(screen.getByText('+30')).toBeDefined()
+  })
+
+  it('в режиме по дате показывает «Поставок нет» при пустом списке', () => {
+    useBatchDeliveries.mockReturnValue({ deliveries: [], loading: false, error: null })
+    render(<HistoryPage />)
+    fireEvent.click(screen.getByText('По дате'))
+    expect(screen.getByText('Поставок нет')).toBeDefined()
   })
 
   it('передаёт flower_id в хук при выборе фильтра', () => {
