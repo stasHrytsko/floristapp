@@ -15,24 +15,6 @@ const mockFlowers = [
 
 let savedDelivery = null
 
-// Подменяем require('../lib/supabase') через простую подстановку
-// Тестируем логику delivery.js напрямую, инжектируя моки
-
-function makeDeliveryModule(supabaseMock) {
-  // Пересоздаём модуль в изоляции без require-кэша
-  const Module = require('module')
-  const originalLoad = Module._load
-  Module._load = function (request, parent, isMain) {
-    if (request === '../lib/supabase' || request.endsWith('/lib/supabase')) {
-      return supabaseMock
-    }
-    return originalLoad.apply(this, arguments)
-  }
-  // Чистим кэш модуля delivery
-  const deliveryPath = require.resolve('./delivery_module_path_stub') // не нужен путь
-  return null
-}
-
 // Тестируем логику состояний и форматирования напрямую
 
 function makeSession(overrides = {}) {
