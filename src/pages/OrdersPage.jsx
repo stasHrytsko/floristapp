@@ -1,10 +1,169 @@
 import { useState } from 'react'
 import OrderCard from '../components/OrderCard'
 import { useOrders } from '../hooks/useOrders'
+import { useClients } from '../hooks/useClients'
+import { useClientOrders } from '../hooks/useClientOrders'
+
+function ClientHistorySheet({ client, onClose }) {
+  const { orders, loading } = useClientOrders(client.name)
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
+      <div
+        className="bg-white w-full rounded-t-2xl p-5 pb-8 max-h-[75vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-semibold text-gray-800">История: {client.name}</p>
+          <button onClick={onClose} className="text-gray-400 text-lg leading-none">✕</button>
+        </div>
+        {loading ? (
+          <p className="text-sm text-gray-400 text-center">Загрузка...</p>
+        ) : orders.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center">Заказов нет</p>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((o) => (
+              <div key={o.id} className="border border-gray-100 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-800">{o.ready_at}</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{o.status}</span>
+                </div>
+                <div className="text-sm text-gray-600 space-y-0.5">
+                  {(o.order_items || []).map((item, i) => (
+                    <p key={i}>{item.flowers?.name || '—'} × {item.quantity} шт</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ClientEditForm({ client, onSave, onCancel }) {
+  const [name, setName] = useState(client.name)
+  const [phone, setPhone] = useState(client.phone || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(name, phone)
+    } catch (err) {
+      setError(err.message || 'Ошибка сохранения')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-3 space-y-2 mt-2">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Имя"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        autoFocus
+      />
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        placeholder="Телефон"
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      />
+      {error && <p className="text-red-500 text-xs">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex-1 bg-green-600 text-white text-sm py-2 rounded-xl disabled:opacity-50"
+        >
+          {saving ? 'Сохранение...' : 'Сохранить'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 bg-gray-100 text-gray-700 text-sm py-2 rounded-xl"
+        >
+          Отмена
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function ClientsTab() {
+  const { clients, loading, error } = useClients()
+  const [editingName, setEditingName] = useState(null)
+  const [historyClient, setHistoryClient] = useState(null)
+  const { updateClient } = useClients()
+
+  async function handleSave(oldName, newName, newPhone) {
+    await updateClient(oldName, newName, newPhone)
+    setEditingName(null)
+  }
+
+  if (loading) return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
+  if (error) return <p className="text-center text-red-500 mt-10 text-sm">Не удалось загрузить клиентов</p>
+
+  return (
+    <div>
+      {clients.length === 0 ? (
+        <p className="text-center text-gray-400 mt-6 text-sm">Клиентов нет</p>
+      ) : (
+        <ul className="space-y-3">
+          {clients.map((c) => (
+            <li key={c.name} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
+              <p className="text-[16px] font-bold text-gray-900">{c.name}</p>
+              {c.phone && <p className="text-[13px] text-gray-400 mb-2">{c.phone}</p>}
+              {!c.phone && <div className="mb-2" />}
+              {editingName === c.name ? (
+                <ClientEditForm
+                  client={c}
+                  onSave={(name, phone) => handleSave(c.name, name, phone)}
+                  onCancel={() => setEditingName(null)}
+                />
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditingName(c.name)}
+                    className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
+                  >
+                    Изменить
+                  </button>
+                  <button
+                    onClick={() => setHistoryClient(c)}
+                    className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
+                  >
+                    История
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {historyClient && (
+        <ClientHistorySheet client={historyClient} onClose={() => setHistoryClient(null)} />
+      )}
+    </div>
+  )
+}
 
 export default function OrdersPage() {
   const { orders, loading, error, refresh, deleteOrder } = useOrders()
   const [deleteError, setDeleteError] = useState(null)
+  const [mode, setMode] = useState('orders')
 
   async function handleDelete(id) {
     setDeleteError(null)
@@ -15,36 +174,61 @@ export default function OrdersPage() {
     }
   }
 
-  if (loading) {
-    return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
-  }
-
-  if (error) {
-    return (
-      <div className="text-center mt-10">
-        <p className="text-red-500 text-sm mb-3">Не удалось загрузить заказы</p>
-        <button onClick={refresh} className="text-sm text-green-600 underline">
-          Повторить
+  return (
+    <div>
+      <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5 mb-4">
+        <button
+          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+            mode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+          }`}
+          onClick={() => setMode('orders')}
+        >
+          Заказы
+        </button>
+        <button
+          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+            mode === 'clients' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+          }`}
+          onClick={() => setMode('clients')}
+        >
+          Клиенты
         </button>
       </div>
-    )
-  }
 
-  return (
-    <div className="space-y-3">
-      {deleteError && (
-        <p className="text-red-500 text-xs text-center">{deleteError}</p>
-      )}
-      {orders.length === 0 ? (
-        <p className="text-center text-gray-400 mt-6 text-sm">Активных заказов нет</p>
-      ) : (
-        orders.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            onDelete={() => handleDelete(order.id)}
-          />
-        ))
+      {mode === 'clients' && <ClientsTab />}
+
+      {mode === 'orders' && (
+        <>
+          {loading && (
+            <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
+          )}
+          {error && (
+            <div className="text-center mt-10">
+              <p className="text-red-500 text-sm mb-3">Не удалось загрузить заказы</p>
+              <button onClick={refresh} className="text-sm text-green-600 underline">
+                Повторить
+              </button>
+            </div>
+          )}
+          {!loading && !error && (
+            <div className="space-y-3">
+              {deleteError && (
+                <p className="text-red-500 text-xs text-center">{deleteError}</p>
+              )}
+              {orders.length === 0 ? (
+                <p className="text-center text-gray-400 mt-6 text-sm">Активных заказов нет</p>
+              ) : (
+                orders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onDelete={() => handleDelete(order.id)}
+                  />
+                ))
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

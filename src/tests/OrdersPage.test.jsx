@@ -6,8 +6,16 @@ import OrderCard from '../components/OrderCard'
 vi.mock('../hooks/useOrders', () => ({
   useOrders: vi.fn(),
 }))
+vi.mock('../hooks/useClients', () => ({
+  useClients: vi.fn(),
+}))
+vi.mock('../hooks/useClientOrders', () => ({
+  useClientOrders: vi.fn(() => ({ orders: [], loading: false })),
+}))
 
 import { useOrders } from '../hooks/useOrders'
+import { useClients } from '../hooks/useClients'
+import { useClientOrders } from '../hooks/useClientOrders'
 
 const mockOrders = [
   {
@@ -35,8 +43,27 @@ const mockOrders = [
   },
 ]
 
+const mockClients = [
+  { name: 'Анна', phone: '+7 999 111 22 33' },
+  { name: 'Мария', phone: '' },
+]
+
+function defaultClientsMock(overrides = {}) {
+  return {
+    clients: [],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+    updateClient: vi.fn(),
+    ...overrides,
+  }
+}
+
 describe('OrdersPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useClients.mockReturnValue(defaultClientsMock())
+  })
 
   it('показывает загрузку', () => {
     useOrders.mockReturnValue({ orders: [], loading: true, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
@@ -62,6 +89,72 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
     expect(screen.getByText('Анна')).toBeDefined()
     expect(screen.getByText('Мария')).toBeDefined()
+  })
+
+  it('показывает переключатель Заказы / Клиенты', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    render(<OrdersPage />)
+    expect(screen.getByText('Заказы')).toBeDefined()
+    expect(screen.getByText('Клиенты')).toBeDefined()
+  })
+
+  it('переключается в режим клиентов и показывает список', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
+    render(<OrdersPage />)
+    fireEvent.click(screen.getByText('Клиенты'))
+    expect(screen.getByText('Анна')).toBeDefined()
+    expect(screen.getByText('Мария')).toBeDefined()
+  })
+
+  it('в разделе клиентов есть кнопки Изменить и История', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
+    render(<OrdersPage />)
+    fireEvent.click(screen.getByText('Клиенты'))
+    expect(screen.getAllByText('Изменить').length).toBe(2)
+    expect(screen.getAllByText('История').length).toBe(2)
+  })
+
+  it('открывает форму редактирования клиента', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
+    render(<OrdersPage />)
+    fireEvent.click(screen.getByText('Клиенты'))
+    fireEvent.click(screen.getAllByText('Изменить')[0])
+    expect(screen.getByDisplayValue('Анна')).toBeDefined()
+  })
+
+  it('открывает историю клиента', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
+    useClientOrders.mockReturnValue({
+      orders: [
+        {
+          id: 'o1',
+          ready_at: '2026-03-20',
+          status: 'выдан',
+          delivery_type: 'самовывоз',
+          order_items: [{ quantity: 5, flowers: { name: 'Роза' } }],
+        },
+      ],
+      loading: false,
+    })
+    render(<OrdersPage />)
+    fireEvent.click(screen.getByText('Клиенты'))
+    fireEvent.click(screen.getAllByText('История')[0])
+    expect(screen.getByText(/История: Анна/)).toBeDefined()
+    expect(screen.getByText('Роза × 5 шт')).toBeDefined()
+  })
+
+  it('закрывает историю при нажатии ✕', () => {
+    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
+    render(<OrdersPage />)
+    fireEvent.click(screen.getByText('Клиенты'))
+    fireEvent.click(screen.getAllByText('История')[0])
+    fireEvent.click(screen.getByText('✕'))
+    expect(screen.queryByText(/История:/)).toBeNull()
   })
 })
 
