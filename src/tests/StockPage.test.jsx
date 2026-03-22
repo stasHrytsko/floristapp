@@ -8,11 +8,14 @@ vi.mock('../hooks/useFlowerStock', () => ({
 vi.mock('../hooks/useAddFlower', () => ({
   useAddFlower: vi.fn(),
 }))
+vi.mock('../hooks/useFlowerBatches', () => ({
+  useFlowerBatches: vi.fn(() => ({ batches: [], loading: false })),
+}))
 
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useAddFlower } from '../hooks/useAddFlower'
 
-const mockAddFlower = { addFlower: vi.fn(), updateThreshold: vi.fn() }
+const mockAddFlower = { addFlower: vi.fn() }
 
 describe('StockPage', () => {
   beforeEach(() => {
@@ -41,8 +44,8 @@ describe('StockPage', () => {
 
   it('рендерит карточки цветов', () => {
     const flowers = [
-      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8, stale: false, low_stock_threshold: 5 },
-      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 0, available: 5, stale: true, low_stock_threshold: 5 },
+      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8 },
+      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 0, available: 5 },
     ]
     useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
     render(<StockPage />)
@@ -50,40 +53,40 @@ describe('StockPage', () => {
     expect(screen.getByText('Тюльпан')).toBeDefined()
   })
 
-  it('показывает банер когда есть цветки ниже порога', () => {
+  it('показывает банер когда есть цветки с нулевым остатком', () => {
     const flowers = [
-      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 3, stale: false, low_stock_threshold: 5 },
-      { flower_id: '2', name: 'Тюльпан', total: 10, reserved: 0, available: 8, stale: false, low_stock_threshold: 5 },
+      { flower_id: '1', name: 'Роза', total: 10, reserved: 10, available: 0 },
+      { flower_id: '2', name: 'Тюльпан', total: 10, reserved: 0, available: 8 },
     ]
     useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
     render(<StockPage />)
-    expect(screen.getByText(/1 цветок заканчивается/)).toBeDefined()
+    expect(screen.getByText(/цветок закончился/)).toBeDefined()
   })
 
   it('не показывает банер когда все в норме', () => {
     const flowers = [
-      { flower_id: '1', name: 'Роза', total: 20, reserved: 2, available: 18, stale: false, low_stock_threshold: 5 },
+      { flower_id: '1', name: 'Роза', total: 20, reserved: 2, available: 18 },
     ]
     useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
     render(<StockPage />)
-    expect(screen.queryByText(/заканчива/)).toBeNull()
+    expect(screen.queryByText(/закончил/)).toBeNull()
   })
 
-  it('показывает правильный текст для нескольких цветков в банере', () => {
+  it('показывает правильный текст для нескольких нулевых цветков', () => {
     const flowers = [
-      { flower_id: '1', name: 'Роза', total: 5, reserved: 2, available: 2, stale: false, low_stock_threshold: 5 },
-      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 0, available: 1, stale: false, low_stock_threshold: 5 },
-      { flower_id: '3', name: 'Ромашка', total: 5, reserved: 0, available: 0, stale: false, low_stock_threshold: 5 },
+      { flower_id: '1', name: 'Роза', total: 5, reserved: 5, available: 0 },
+      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 5, available: 0 },
+      { flower_id: '3', name: 'Ромашка', total: 5, reserved: 5, available: 0 },
     ]
     useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
     render(<StockPage />)
-    expect(screen.getByText(/3 цветка заканчиваются/)).toBeDefined()
+    expect(screen.getByText(/3 цветка закончились/)).toBeDefined()
   })
 
   it('показывает блок метрик с правильными суммами', () => {
     const flowers = [
-      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8, stale: false, low_stock_threshold: 5 },
-      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 1, available: 4, stale: false, low_stock_threshold: 5 },
+      { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8 },
+      { flower_id: '2', name: 'Тюльпан', total: 5, reserved: 1, available: 4 },
     ]
     useFlowerStock.mockReturnValue({ flowers, loading: false, error: null, refresh: vi.fn() })
     render(<StockPage />)

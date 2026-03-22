@@ -2,14 +2,16 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import FlowerCard from '../components/FlowerCard'
 
+vi.mock('../hooks/useFlowerBatches', () => ({
+  useFlowerBatches: vi.fn(() => ({ batches: [], loading: false })),
+}))
+
 const base = {
   flower_id: '1',
   name: 'Роза',
   total: 50,
   reserved: 10,
   available: 40,
-  stale: false,
-  low_stock_threshold: 5,
 }
 
 describe('FlowerCard', () => {
@@ -21,14 +23,14 @@ describe('FlowerCard', () => {
     expect(screen.getByText('50')).toBeDefined()
   })
 
-  it('не показывает предупреждение при норме', () => {
+  it('не показывает предупреждение при наличии остатка', () => {
     render(<FlowerCard flower={base} />)
     expect(screen.queryByText(/⚠️/)).toBeNull()
   })
 
-  it('показывает предупреждение "скоро завянет" при stale=true', () => {
-    render(<FlowerCard flower={{ ...base, stale: true }} />)
-    expect(screen.getByText(/скоро завянет/)).toBeDefined()
+  it('показывает предупреждение "закончился" при available === 0', () => {
+    render(<FlowerCard flower={{ ...base, available: 0 }} />)
+    expect(screen.getByText(/закончился/)).toBeDefined()
   })
 
   it('показывает предупреждение "дефицит" при available < 0', () => {
@@ -36,35 +38,48 @@ describe('FlowerCard', () => {
     expect(screen.getByText(/дефицит/)).toBeDefined()
   })
 
-  it('показывает предупреждение о низком остатке когда available <= threshold', () => {
-    render(<FlowerCard flower={{ ...base, available: 3, low_stock_threshold: 5 }} />)
-    expect(screen.getByText(/осталось 3 шт, порог 5/)).toBeDefined()
+  it('не показывает предупреждение при available > 0', () => {
+    render(<FlowerCard flower={{ ...base, available: 1 }} />)
+    expect(screen.queryByText(/⚠️/)).toBeNull()
   })
 
-  it('не показывает низкий остаток когда available > threshold', () => {
-    render(<FlowerCard flower={{ ...base, available: 10, low_stock_threshold: 5 }} />)
-    expect(screen.queryByText(/осталось/)).toBeNull()
-  })
-
-  it('показывает текущий порог', () => {
+  it('показывает кнопку Детали', () => {
     render(<FlowerCard flower={base} />)
-    expect(screen.getByText('порог: 5')).toBeDefined()
+    expect(screen.getByText('Детали')).toBeDefined()
   })
 
-  it('открывает редактирование порога по кнопке', () => {
+  it('открывает bottom sheet при нажатии на Детали', async () => {
+    const { useFlowerBatches } = await import('../hooks/useFlowerBatches')
+    useFlowerBatches.mockReturnValue({ batches: [], loading: false })
+
     render(<FlowerCard flower={base} />)
-    fireEvent.click(screen.getByText('порог: 5'))
-    expect(screen.getByText('Сохранить')).toBeDefined()
-    expect(screen.getByText('Отмена')).toBeDefined()
+    fireEvent.click(screen.getByText('Детали'))
+    expect(screen.getByText(/Партии: Роза/)).toBeDefined()
   })
 
-  it('вызывает onThresholdChange при сохранении', () => {
-    const onThresholdChange = vi.fn()
-    render(<FlowerCard flower={base} onThresholdChange={onThresholdChange} />)
-    fireEvent.click(screen.getByText('порог: 5'))
-    const input = screen.getByRole('spinbutton')
-    fireEvent.change(input, { target: { value: '10' } })
-    fireEvent.click(screen.getByText('Сохранить'))
-    expect(onThresholdChange).toHaveBeenCalledWith('1', 10)
+  it('показывает партии в bottom sheet', async () => {
+    const { useFlowerBatches } = await import('../hooks/useFlowerBatches')
+    useFlowerBatches.mockReturnValue({
+      batches: [
+        { id: 'b1', quantity: 20, delivered_at: '2026-03-10', suppliers: { name: 'Флора' } },
+      ],
+      loading: false,
+    })
+
+    render(<FlowerCard flower={base} />)
+    fireEvent.click(screen.getByText('Детали'))
+    expect(screen.getByText('Флора')).toBeDefined()
+    expect(screen.getByText('20 шт')).toBeDefined()
+  })
+
+  it('закрывает bottom sheet при нажатии на ✕', async () => {
+    const { useFlowerBatches } = await import('../hooks/useFlowerBatches')
+    useFlowerBatches.mockReturnValue({ batches: [], loading: false })
+
+    render(<FlowerCard flower={base} />)
+    fireEvent.click(screen.getByText('Детали'))
+    expect(screen.getByText(/Партии: Роза/)).toBeDefined()
+    fireEvent.click(screen.getByText('✕'))
+    expect(screen.queryByText(/Партии: Роза/)).toBeNull()
   })
 })

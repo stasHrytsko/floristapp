@@ -1,53 +1,76 @@
 import { useState } from 'react'
+import { useFlowerBatches } from '../hooks/useFlowerBatches'
 
-export default function FlowerCard({ flower, onThresholdChange }) {
-  const [editing, setEditing] = useState(false)
-  const [thresholdInput, setThresholdInput] = useState('')
+function FlowerDetailsSheet({ flower, onClose }) {
+  const { batches, loading } = useFlowerBatches(flower.flower_id)
+  const today = new Date()
 
-  const { name, total, reserved, available, stale, low_stock_threshold = 5 } = flower
-  const deficit = available < 0
-  const lowStock = !deficit && available <= low_stock_threshold
-
-  function startEdit() {
-    setThresholdInput(String(low_stock_threshold))
-    setEditing(true)
+  function daysSince(dateStr) {
+    const d = new Date(dateStr)
+    return Math.floor((today - d) / (1000 * 60 * 60 * 24))
   }
 
-  function saveThreshold() {
-    const val = parseInt(thresholdInput, 10)
-    if (!isNaN(val) && val >= 0) {
-      onThresholdChange?.(flower.flower_id, val)
-    }
-    setEditing(false)
-  }
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
+      <div
+        className="bg-white w-full rounded-t-2xl p-5 pb-8 max-h-[70vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-semibold text-gray-800">Партии: {flower.name}</p>
+          <button onClick={onClose} className="text-gray-400 text-lg leading-none">✕</button>
+        </div>
+        {loading ? (
+          <p className="text-sm text-gray-400 text-center">Загрузка...</p>
+        ) : batches.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center">Нет партий</p>
+        ) : (
+          <div className="space-y-3">
+            {batches.map((b) => (
+              <div key={b.id} className="border border-gray-100 rounded-xl p-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-700">{b.delivered_at}</span>
+                  <span className="font-medium text-gray-900">{b.quantity} шт</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>{b.suppliers?.name || '—'}</span>
+                  <span>{daysSince(b.delivered_at)} дн. на складе</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function FlowerCard({ flower }) {
+  const [showDetails, setShowDetails] = useState(false)
+
+  const { name, total, reserved, available } = flower
+  const empty = available <= 0
 
   return (
     <div
       className={`bg-white rounded-xl p-4 shadow-sm border ${
-        deficit || stale || lowStock ? 'border-amber-400' : 'border-transparent'
+        empty ? 'border-amber-400' : 'border-transparent'
       }`}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="font-medium text-gray-900">{name}</span>
-        <div className="flex gap-1 flex-wrap justify-end">
-          {lowStock && (
-            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
-              ⚠️ осталось {available} шт, порог {low_stock_threshold}
-            </span>
-          )}
-          {(deficit || stale) && (
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-              ⚠️ {deficit ? 'дефицит' : 'скоро завянет'}
-            </span>
-          )}
-        </div>
+        {empty && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+            ⚠️ {available < 0 ? 'дефицит' : 'закончился'}
+          </span>
+        )}
       </div>
 
       <div className="flex gap-4 text-sm">
         <div className="flex flex-col items-center">
           <span
             className={`text-lg font-bold ${
-              deficit ? 'text-red-600' : lowStock ? 'text-yellow-600' : 'text-green-600'
+              available < 0 ? 'text-red-600' : available === 0 ? 'text-amber-600' : 'text-green-600'
             }`}
           >
             {available}
@@ -64,37 +87,18 @@ export default function FlowerCard({ flower, onThresholdChange }) {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        {editing ? (
-          <>
-            <span className="text-xs text-gray-500">Порог:</span>
-            <input
-              type="number"
-              min="0"
-              value={thresholdInput}
-              onChange={(e) => setThresholdInput(e.target.value)}
-              className="w-16 border border-gray-300 rounded px-2 py-0.5 text-xs"
-              autoFocus
-            />
-            <button
-              onClick={saveThreshold}
-              className="text-xs text-green-600 font-medium"
-            >
-              Сохранить
-            </button>
-            <button
-              onClick={() => setEditing(false)}
-              className="text-xs text-gray-400"
-            >
-              Отмена
-            </button>
-          </>
-        ) : (
-          <button onClick={startEdit} className="text-xs text-gray-400">
-            порог: {low_stock_threshold}
-          </button>
-        )}
+      <div className="mt-3">
+        <button
+          onClick={() => setShowDetails(true)}
+          className="text-xs text-blue-500 underline"
+        >
+          Детали
+        </button>
       </div>
+
+      {showDetails && (
+        <FlowerDetailsSheet flower={flower} onClose={() => setShowDetails(false)} />
+      )}
     </div>
   )
 }

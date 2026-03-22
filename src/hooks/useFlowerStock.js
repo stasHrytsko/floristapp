@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const STALE_DAYS = 5
-
 export function useFlowerStock() {
   const [flowers, setFlowers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,32 +10,9 @@ export function useFlowerStock() {
     setLoading(true)
     setError(null)
     try {
-      const staleDate = new Date()
-      staleDate.setDate(staleDate.getDate() - STALE_DAYS)
-      const staleDateStr = staleDate.toISOString().split('T')[0]
-
-      const [stockRes, batchRes, flowersRes] = await Promise.all([
-        supabase.from('flower_stock').select('*'),
-        supabase.from('batches').select('flower_id').lt('delivered_at', staleDateStr),
-        supabase.from('flowers').select('id, low_stock_threshold'),
-      ])
-
-      if (stockRes.error) throw stockRes.error
-      if (batchRes.error) throw batchRes.error
-      if (flowersRes.error) throw flowersRes.error
-
-      const staleFlowerIds = new Set((batchRes.data || []).map((b) => b.flower_id))
-      const thresholdMap = new Map(
-        (flowersRes.data || []).map((f) => [f.id, f.low_stock_threshold ?? 5])
-      )
-
-      setFlowers(
-        (stockRes.data || []).map((f) => ({
-          ...f,
-          stale: staleFlowerIds.has(f.flower_id),
-          low_stock_threshold: thresholdMap.get(f.flower_id) ?? 5,
-        }))
-      )
+      const { data, error } = await supabase.from('flower_stock').select('*')
+      if (error) throw error
+      setFlowers(data || [])
     } catch (err) {
       setError(err.message || 'Ошибка загрузки')
     } finally {
