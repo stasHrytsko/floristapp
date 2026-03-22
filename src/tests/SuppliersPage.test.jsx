@@ -5,8 +5,12 @@ import SuppliersPage from '../pages/SuppliersPage'
 vi.mock('../hooks/useSuppliers', () => ({
   useSuppliers: vi.fn(),
 }))
+vi.mock('../hooks/useSupplierDeliveries', () => ({
+  useSupplierDeliveries: vi.fn(() => ({ deliveries: [], loading: false })),
+}))
 
 import { useSuppliers } from '../hooks/useSuppliers'
+import { useSupplierDeliveries } from '../hooks/useSupplierDeliveries'
 
 const mockSuppliers = [
   { id: '1', name: 'Розы опт', phone: '+7 900 111 22 33' },
@@ -132,5 +136,48 @@ describe('SuppliersPage', () => {
     fireEvent.click(deleteBtns[0])
     fireEvent.click(screen.getByRole('button', { name: /отмена/i }))
     expect(deleteSupplier).not.toHaveBeenCalled()
+  })
+
+  it('показывает кнопку «Детали» у каждого поставщика', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    render(<SuppliersPage />)
+    expect(screen.getAllByText('Детали').length).toBe(2)
+  })
+
+  it('открывает bottom sheet при клике «Детали»', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    render(<SuppliersPage />)
+    fireEvent.click(screen.getAllByText('Детали')[0])
+    expect(screen.getByText(/поставки: розы опт/i)).toBeDefined()
+  })
+
+  it('показывает поставки в bottom sheet', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    useSupplierDeliveries.mockReturnValue({
+      deliveries: [
+        {
+          id: 'd1',
+          delivered_at: '2026-03-20',
+          status: 'на складе',
+          delivery_items: [
+            { quantity: 50, flowers: { name: 'Роза' } },
+          ],
+        },
+      ],
+      loading: false,
+    })
+    render(<SuppliersPage />)
+    fireEvent.click(screen.getAllByText('Детали')[0])
+    expect(screen.getByText('2026-03-20')).toBeDefined()
+    expect(screen.getByText('Роза × 50 шт')).toBeDefined()
+    expect(screen.getByText('на складе')).toBeDefined()
+  })
+
+  it('закрывает bottom sheet при нажатии на ✕', () => {
+    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
+    render(<SuppliersPage />)
+    fireEvent.click(screen.getAllByText('Детали')[0])
+    fireEvent.click(screen.getByText('✕'))
+    expect(screen.queryByText(/поставки:/i)).toBeNull()
   })
 })

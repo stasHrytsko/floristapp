@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
+import { useSupplierDeliveries } from '../hooks/useSupplierDeliveries'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const MAX_SUPPLIERS = 5
@@ -70,12 +71,52 @@ function SupplierForm({ initial, onSave, onCancel }) {
   )
 }
 
+function SupplierDeliveriesSheet({ supplier, onClose }) {
+  const { deliveries, loading } = useSupplierDeliveries(supplier.id)
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
+      <div
+        className="bg-white w-full rounded-t-2xl p-5 pb-8 max-h-[75vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-semibold text-gray-800">Поставки: {supplier.name}</p>
+          <button onClick={onClose} className="text-gray-400 text-lg leading-none">✕</button>
+        </div>
+        {loading ? (
+          <p className="text-sm text-gray-400 text-center">Загрузка...</p>
+        ) : deliveries.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center">Поставок нет</p>
+        ) : (
+          <div className="space-y-3">
+            {deliveries.map((d) => (
+              <div key={d.id} className="border border-gray-100 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-800">{d.delivered_at}</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{d.status}</span>
+                </div>
+                <div className="text-sm text-gray-600 space-y-0.5">
+                  {(d.delivery_items || []).map((item, i) => (
+                    <p key={i}>{item.flowers?.name || '—'} × {item.quantity} шт</p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   const { suppliers, loading, error, addSupplier, updateSupplier, deleteSupplier } = useSuppliers()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [deleteError, setDeleteError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [detailsSupplier, setDetailsSupplier] = useState(null)
 
   const atLimit = suppliers.length >= MAX_SUPPLIERS
 
@@ -152,6 +193,12 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
               {!s.phone && <div className="mb-3" />}
               <div className="flex gap-2">
                 <button
+                  onClick={() => setDetailsSupplier(s)}
+                  className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
+                >
+                  Детали
+                </button>
+                <button
                   onClick={() => setEditingId(s.id)}
                   className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
                 >
@@ -184,6 +231,13 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
           message={`Удалить поставщика «${confirmDelete.name}»?`}
           onConfirm={() => handleDelete(confirmDelete.id)}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {detailsSupplier && (
+        <SupplierDeliveriesSheet
+          supplier={detailsSupplier}
+          onClose={() => setDetailsSupplier(null)}
         />
       )}
     </div>
