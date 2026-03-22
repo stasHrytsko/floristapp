@@ -3,15 +3,14 @@ import FlowerCard from '../components/FlowerCard'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useAddFlower } from '../hooks/useAddFlower'
 
-function lowStockLabel(n) {
-  if (n === 1) return '1 цветок заканчивается'
-  if (n >= 2 && n <= 4) return `${n} цветка заканчиваются`
-  return `${n} цветков заканчиваются`
+function emptyLabel(n) {
+  if (n === 1) return 'цветок закончился'
+  if (n >= 2 && n <= 4) return `${n} цветка закончились`
+  return `${n} цветков закончились`
 }
 
 function AddFlowerModal({ onSave, onClose }) {
   const [name, setName] = useState('')
-  const [threshold, setThreshold] = useState('5')
   const [error, setError] = useState(null)
   const { addFlower } = useAddFlower()
 
@@ -19,7 +18,7 @@ function AddFlowerModal({ onSave, onClose }) {
     e.preventDefault()
     setError(null)
     try {
-      await addFlower(name, parseInt(threshold, 10) || 5)
+      await addFlower(name)
       onSave()
     } catch (err) {
       setError(err.message)
@@ -48,16 +47,6 @@ function AddFlowerModal({ onSave, onClose }) {
               autoFocus
             />
           </div>
-          <div>
-            <label className="text-sm text-gray-600 block mb-1">Порог предупреждения (шт)</label>
-            <input
-              type="number"
-              min="0"
-              value={threshold}
-              onChange={(e) => setThreshold(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
@@ -73,17 +62,11 @@ function AddFlowerModal({ onSave, onClose }) {
 
 export default function StockPage({ addModalOpen, onAddClose }) {
   const { flowers, loading, error, refresh } = useFlowerStock()
-  const { updateThreshold } = useAddFlower()
 
-  const lowStockCount = flowers.filter((f) => f.available <= f.low_stock_threshold).length
+  const emptyCount = flowers.filter((f) => f.available <= 0).length
   const totalAvailable = flowers.reduce((s, f) => s + (f.available || 0), 0)
   const totalReserved = flowers.reduce((s, f) => s + (f.reserved || 0), 0)
   const totalAll = flowers.reduce((s, f) => s + (f.total || 0), 0)
-
-  async function handleThresholdChange(flowerId, threshold) {
-    await updateThreshold(flowerId, threshold)
-    refresh()
-  }
 
   if (loading) {
     return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
@@ -121,10 +104,10 @@ export default function StockPage({ addModalOpen, onAddClose }) {
         </div>
       </div>
 
-      {lowStockCount > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-          <span className="text-yellow-700 text-sm font-medium">
-            ⚠️ {lowStockLabel(lowStockCount)}
+      {emptyCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+          <span className="text-amber-700 text-sm font-medium">
+            ⚠️ {emptyLabel(emptyCount)}
           </span>
         </div>
       )}
@@ -134,11 +117,7 @@ export default function StockPage({ addModalOpen, onAddClose }) {
       ) : (
         <div className="space-y-3">
           {flowers.map((flower) => (
-            <FlowerCard
-              key={flower.flower_id}
-              flower={flower}
-              onThresholdChange={handleThresholdChange}
-            />
+            <FlowerCard key={flower.flower_id} flower={flower} />
           ))}
         </div>
       )}
