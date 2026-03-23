@@ -4,9 +4,16 @@ import NewOrderPage from '../pages/NewOrderPage'
 
 vi.mock('../hooks/useFlowerStock', () => ({ useFlowerStock: vi.fn() }))
 vi.mock('../hooks/useNewOrder', () => ({ useNewOrder: vi.fn() }))
+vi.mock('../hooks/useClients', () => ({ useClients: vi.fn() }))
 
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useNewOrder } from '../hooks/useNewOrder'
+import { useClients } from '../hooks/useClients'
+
+const mockClients = [
+  { id: 'c1', name: 'Анна', phone: '+7 999 111 22 33' },
+  { id: 'c2', name: 'Мария', phone: null },
+]
 
 const mockFlowers = [
   { flower_id: '1', name: 'Роза', total: 10, reserved: 2, available: 8, stale: false },
@@ -17,6 +24,15 @@ function setup(saveOrderOverride) {
   const saveOrder = saveOrderOverride ?? vi.fn().mockResolvedValue(undefined)
   useFlowerStock.mockReturnValue({ flowers: mockFlowers, loading: false, error: null, refresh: vi.fn() })
   useNewOrder.mockReturnValue({ saveOrder })
+  useClients.mockReturnValue({ clients: [], loading: false })
+  return { saveOrder }
+}
+
+function setupWithClients(saveOrderOverride) {
+  const saveOrder = saveOrderOverride ?? vi.fn().mockResolvedValue(undefined)
+  useFlowerStock.mockReturnValue({ flowers: mockFlowers, loading: false, error: null, refresh: vi.fn() })
+  useNewOrder.mockReturnValue({ saveOrder })
+  useClients.mockReturnValue({ clients: mockClients, loading: false })
   return { saveOrder }
 }
 
@@ -27,7 +43,10 @@ function fillBaseForm() {
 }
 
 describe('NewOrderPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useClients.mockReturnValue({ clients: [], loading: false })
+  })
 
   it('показывает загрузку пока данные не загружены', () => {
     useFlowerStock.mockReturnValue({ flowers: [], loading: true, error: null, refresh: vi.fn() })
@@ -177,5 +196,76 @@ describe('NewOrderPage', () => {
     fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '3' } })
     fireEvent.click(screen.getByRole('button', { name: /сохранить заказ/i }))
     await waitFor(() => expect(screen.getByText('Нет сети')).toBeDefined())
+  })
+
+  it('показывает переключатель Новый клиент / Существующий', () => {
+    setup()
+    render(<NewOrderPage />)
+    expect(screen.getByText('Новый клиент')).toBeDefined()
+    expect(screen.getByText('Существующий')).toBeDefined()
+  })
+
+  it('по умолчанию показывает поля имени и телефона', () => {
+    setup()
+    render(<NewOrderPage />)
+    expect(screen.getByPlaceholderText(/введите имя/i)).toBeDefined()
+    expect(screen.getByPlaceholderText(/\+7/i)).toBeDefined()
+  })
+
+  it('при переключении на существующего показывает дропдаун клиентов', () => {
+    setupWithClients()
+    render(<NewOrderPage />)
+    fireEvent.click(screen.getByText('Существующий'))
+    expect(screen.getByText('Выберите клиента')).toBeDefined()
+    expect(screen.getByText(/Анна/)).toBeDefined()
+  })
+
+  it('выбор клиента подставляет имя и телефон', () => {
+    setupWithClients()
+    render(<NewOrderPage />)
+    fireEvent.click(screen.getByText('Существующий'))
+    const selects = screen.getAllByRole('combobox')
+    const clientSelect = selects.find((s) => s.value === '')
+    fireEvent.change(clientSelect, { target: { value: 'c1' } })
+    expect(screen.getByText(/Анна · \+7/)).toBeDefined()
+  })
+
+  it('показывает поле комментария', () => {
+    setup()
+    render(<NewOrderPage />)
+    expect(screen.getByPlaceholderText(/необязательно/i)).toBeDefined()
+  })
+
+  it('передаёт комментарий в saveOrder', async () => {
+    const { saveOrder } = setup()
+    render(<NewOrderPage />)
+    fillBaseForm()
+    fireEvent.change(screen.getByPlaceholderText(/необязательно/i), { target: { value: 'Красные розы' } })
+    const flowerSelects = screen.getAllByRole('combobox')
+    const flowerSelect = flowerSelects[flowerSelects.length - 1]
+    fireEvent.change(flowerSelect, { target: { value: '1' } })
+    fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /сохранить заказ/i }))
+    await waitFor(() =>
+      expect(saveOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ comment: 'Красные розы' })
+      )
+    )
+  })
+
+  it('передаёт clientId null для нового клиента', async () => {
+    const { saveOrder } = setup()
+    render(<NewOrderPage />)
+    fillBaseForm()
+    const flowerSelects = screen.getAllByRole('combobox')
+    const flowerSelect = flowerSelects[flowerSelects.length - 1]
+    fireEvent.change(flowerSelect, { target: { value: '1' } })
+    fireEvent.change(screen.getByPlaceholderText(/количество/i), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /сохранить заказ/i }))
+    await waitFor(() =>
+      expect(saveOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ clientId: null })
+      )
+    )
   })
 })

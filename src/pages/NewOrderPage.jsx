@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useNewOrder } from '../hooks/useNewOrder'
+import { useClients } from '../hooks/useClients'
 
 function newItem() {
   return { id: Date.now() + Math.random(), flowerId: '', quantity: '' }
@@ -9,9 +10,13 @@ function newItem() {
 export default function NewOrderPage({ onBack, initialClientName = '', initialClientPhone = '' }) {
   const { flowers, loading } = useFlowerStock()
   const { saveOrder } = useNewOrder()
+  const { clients } = useClients()
 
+  const [clientMode, setClientMode] = useState('new')
+  const [selectedClientId, setSelectedClientId] = useState('')
   const [clientName, setClientName] = useState(initialClientName)
   const [clientPhone, setClientPhone] = useState(initialClientPhone)
+  const [comment, setComment] = useState('')
   const [readyAt, setReadyAt] = useState('')
   const [deliveryType, setDeliveryType] = useState('самовывоз')
   const [address, setAddress] = useState('')
@@ -21,6 +26,22 @@ export default function NewOrderPage({ onBack, initialClientName = '', initialCl
   const [success, setSuccess] = useState(false)
 
   const availableFlowers = (flowers || []).filter((f) => f.available > 0)
+
+  function handleModeSwitch(mode) {
+    setClientMode(mode)
+    setSelectedClientId('')
+    setClientName(initialClientName)
+    setClientPhone(initialClientPhone)
+  }
+
+  function handleClientSelect(id) {
+    setSelectedClientId(id)
+    const c = clients.find((c) => c.id === id)
+    if (c) {
+      setClientName(c.name)
+      setClientPhone(c.phone || '')
+    }
+  }
 
   function updateItem(id, patch) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
@@ -48,8 +69,13 @@ export default function NewOrderPage({ onBack, initialClientName = '', initialCl
     return `На складе только ${f.available} ${f.name.toLowerCase()}`
   }
 
+  const clientValid =
+    clientMode === 'existing'
+      ? !!selectedClientId
+      : !!clientName.trim()
+
   const isValid =
-    clientName.trim() &&
+    clientValid &&
     readyAt &&
     items.length > 0 &&
     items.every(
@@ -67,16 +93,21 @@ export default function NewOrderPage({ onBack, initialClientName = '', initialCl
     setSaving(true)
     try {
       await saveOrder({
+        clientId: clientMode === 'existing' ? selectedClientId : null,
         clientName: clientName.trim(),
         clientPhone: clientPhone.trim() || null,
         readyAt,
         deliveryType,
         address: address.trim(),
         items: items.map((it) => ({ flowerId: it.flowerId, quantity: Number(it.quantity) })),
+        comment,
       })
       setSuccess(true)
+      setClientMode('new')
+      setSelectedClientId('')
       setClientName('')
       setClientPhone('')
+      setComment('')
       setReadyAt('')
       setDeliveryType('самовывоз')
       setAddress('')
@@ -103,27 +134,73 @@ export default function NewOrderPage({ onBack, initialClientName = '', initialCl
       {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Имя клиента</label>
-          <input
-            type="text"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            placeholder="Введите имя"
-            required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
+        <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5">
+          <button
+            type="button"
+            onClick={() => handleModeSwitch('new')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              clientMode === 'new' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Новый клиент
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeSwitch('existing')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              clientMode === 'existing' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Существующий
+          </button>
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Телефон</label>
-          <input
-            type="tel"
-            value={clientPhone}
-            onChange={(e) => setClientPhone(e.target.value)}
-            placeholder="+7 999 000 00 00"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-        </div>
+
+        {clientMode === 'existing' ? (
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Клиент</label>
+            <select
+              value={selectedClientId}
+              onChange={(e) => handleClientSelect(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">Выберите клиента</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.phone ? ` — ${c.phone}` : ''}
+                </option>
+              ))}
+            </select>
+            {selectedClientId && (
+              <p className="text-xs text-gray-400 mt-1">{clientName}{clientPhone ? ` · ${clientPhone}` : ''}</p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Имя клиента</label>
+              <input
+                type="text"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Введите имя"
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Телефон</label>
+              <input
+                type="tel"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="+7 999 000 00 00"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+          </>
+        )}
+
         <div>
           <label className="block text-xs text-gray-500 mb-1">Дата готовности</label>
           <input
@@ -158,6 +235,16 @@ export default function NewOrderPage({ onBack, initialClientName = '', initialCl
             />
           </div>
         )}
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Комментарий</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Необязательно"
+            rows={2}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+          />
+        </div>
       </div>
 
       {items.map((item, idx) => {

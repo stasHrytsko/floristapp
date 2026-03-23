@@ -1,8 +1,7 @@
 import { supabase } from '../lib/supabase'
 
 export function useNewOrder() {
-  async function saveOrder({ clientName, clientPhone, readyAt, deliveryType, address, items }) {
-    // Повторная проверка остатков перед записью
+  async function saveOrder({ clientId, clientName, clientPhone, readyAt, deliveryType, address, items, comment }) {
     const flowerIds = items.map((i) => i.flowerId)
     const { data: stock, error: stockErr } = await supabase
       .from('flower_stock')
@@ -18,15 +17,28 @@ export function useNewOrder() {
       }
     }
 
+    let resolvedClientId = clientId || null
+    if (!resolvedClientId) {
+      const { data: newClient, error: clientErr } = await supabase
+        .from('clients')
+        .insert({ name: clientName.trim(), phone: clientPhone?.trim() || null })
+        .select('id')
+        .single()
+      if (clientErr) throw clientErr
+      resolvedClientId = newClient.id
+    }
+
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
+        client_id: resolvedClientId,
         client_name: clientName,
         client_phone: clientPhone || null,
         delivery_type: deliveryType,
         delivery_address: deliveryType === 'доставка' ? address : null,
         ready_at: readyAt,
-        status: 'новый',
+        status: 'активный',
+        comment: comment?.trim() || null,
       })
       .select('id')
       .single()

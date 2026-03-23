@@ -11,18 +11,11 @@ export function useClients() {
     setError(null)
     try {
       const { data, error: err } = await supabase
-        .from('orders')
-        .select('client_name, client_phone')
-        .order('client_name')
+        .from('clients')
+        .select('id, name, phone')
+        .order('name')
       if (err) throw err
-
-      const map = {}
-      ;(data || []).forEach((o) => {
-        if (!map[o.client_name]) {
-          map[o.client_name] = { name: o.client_name, phone: o.client_phone || '' }
-        }
-      })
-      setClients(Object.values(map))
+      setClients(data || [])
     } catch (err) {
       setError(err.message || 'Ошибка загрузки')
     } finally {
@@ -30,12 +23,18 @@ export function useClients() {
     }
   }
 
-  async function updateClient(oldName, newName, newPhone) {
+  async function updateClient(id, newName, newPhone) {
+    const trimmedName = newName.trim()
+    const trimmedPhone = newPhone.trim() || null
     const { error: err } = await supabase
-      .from('orders')
-      .update({ client_name: newName.trim(), client_phone: newPhone.trim() || null })
-      .eq('client_name', oldName)
+      .from('clients')
+      .update({ name: trimmedName, phone: trimmedPhone })
+      .eq('id', id)
     if (err) throw err
+    await supabase
+      .from('orders')
+      .update({ client_name: trimmedName, client_phone: trimmedPhone })
+      .eq('client_id', id)
     await fetchData()
   }
 

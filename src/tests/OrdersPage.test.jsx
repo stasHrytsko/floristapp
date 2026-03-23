@@ -44,8 +44,8 @@ const mockOrders = [
 ]
 
 const mockClients = [
-  { name: 'Анна', phone: '+7 999 111 22 33' },
-  { name: 'Мария', phone: '' },
+  { id: 'c1', name: 'Анна', phone: '+7 999 111 22 33' },
+  { id: 'c2', name: 'Мария', phone: '' },
 ]
 
 function defaultClientsMock(overrides = {}) {
