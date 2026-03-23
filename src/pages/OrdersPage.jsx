@@ -102,14 +102,13 @@ function ClientEditForm({ client, onSave, onCancel }) {
 }
 
 function ClientsTab() {
-  const { clients, loading, error } = useClients()
-  const [editingName, setEditingName] = useState(null)
+  const { clients, loading, error, updateClient } = useClients()
+  const [editingId, setEditingId] = useState(null)
   const [historyClient, setHistoryClient] = useState(null)
-  const { updateClient } = useClients()
 
-  async function handleSave(oldName, newName, newPhone) {
-    await updateClient(oldName, newName, newPhone)
-    setEditingName(null)
+  async function handleSave(id, newName, newPhone) {
+    await updateClient(id, newName, newPhone)
+    setEditingId(null)
   }
 
   if (loading) return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
@@ -122,20 +121,20 @@ function ClientsTab() {
       ) : (
         <ul className="space-y-3">
           {clients.map((c) => (
-            <li key={c.name} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
+            <li key={c.id || c.name} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
               <p className="text-[16px] font-bold text-gray-900">{c.name}</p>
               {c.phone && <p className="text-[13px] text-gray-400 mb-2">{c.phone}</p>}
               {!c.phone && <div className="mb-2" />}
-              {editingName === c.name ? (
+              {editingId === (c.id || c.name) ? (
                 <ClientEditForm
                   client={c}
-                  onSave={(name, phone) => handleSave(c.name, name, phone)}
-                  onCancel={() => setEditingName(null)}
+                  onSave={(name, phone) => handleSave(c.id || c.name, name, phone)}
+                  onCancel={() => setEditingId(null)}
                 />
               ) : (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setEditingName(c.name)}
+                    onClick={() => setEditingId(c.id || c.name)}
                     className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
                   >
                     Изменить
