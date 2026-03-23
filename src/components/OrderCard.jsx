@@ -2,22 +2,8 @@ import { useState } from 'react'
 import ConfirmDialog from './ConfirmDialog'
 
 const STATUS_STYLES = {
-  'новый': 'bg-blue-100 text-blue-700',
-  'в работе': 'bg-yellow-100 text-yellow-700',
-  'готов к выдаче': 'bg-green-100 text-green-700',
-  'готов к доставке': 'bg-green-100 text-green-700',
-  'выдан': 'bg-gray-100 text-gray-500',
-  'доставлен': 'bg-gray-100 text-gray-500',
-}
-
-function nextOrderStatus(status, deliveryType) {
-  if (status === 'новый') return 'в работе'
-  if (status === 'в работе') {
-    return deliveryType === 'доставка' ? 'готов к доставке' : 'готов к выдаче'
-  }
-  if (status === 'готов к выдаче') return 'выдан'
-  if (status === 'готов к доставке') return 'доставлен'
-  return null
+  'активный': 'bg-blue-100 text-blue-700',
+  'выполнен': 'bg-gray-100 text-gray-500',
 }
 
 function formatDate(dateStr) {
@@ -26,12 +12,11 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
-export default function OrderCard({ order, onStatusChange, onDelete }) {
+export default function OrderCard({ order, onStatusChange, onRecreate }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const { client_name, client_phone, delivery_type, delivery_address, status, ready_at, order_items = [] } = order
   const statusStyle = STATUS_STYLES[status] || 'bg-gray-100 text-gray-600'
   const isDelivery = delivery_type === 'доставка'
-  const next = nextOrderStatus(status, delivery_type)
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -55,29 +40,29 @@ export default function OrderCard({ order, onStatusChange, onDelete }) {
         {client_phone && <span>{client_phone}</span>}
       </div>
 
-      {next && onStatusChange && (
+      {status === 'активный' && onStatusChange && (
         <button
-          onClick={() => onStatusChange(order.id, next)}
+          onClick={() => onStatusChange(order.id)}
           className="w-full bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
         >
-          → {next}
+          → выполнен
         </button>
       )}
 
-      {onDelete && (
+      {onRecreate && (
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}
-          className="w-full bg-gray-100 text-red-500 text-sm py-2.5 rounded-xl font-medium mt-2"
+          className="w-full bg-gray-100 text-green-700 text-sm py-2.5 rounded-xl font-medium mt-2"
         >
-          Отменить заказ
+          Пересоздать заказ
         </button>
       )}
 
       {confirmOpen && (
         <ConfirmDialog
-          message={`Удалить заказ клиента «${client_name}»?`}
-          onConfirm={() => { setConfirmOpen(false); onDelete() }}
+          message={`Удалить заказ и создать новый для «${client_name}»?`}
+          onConfirm={() => { setConfirmOpen(false); onRecreate() }}
           onCancel={() => setConfirmOpen(false)}
         />
       )}

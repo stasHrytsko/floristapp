@@ -6,12 +6,12 @@ function newItem() {
   return { id: Date.now() + Math.random(), flowerId: '', quantity: '' }
 }
 
-export default function NewOrderPage({ onBack }) {
+export default function NewOrderPage({ onBack, initialClientName = '', initialClientPhone = '' }) {
   const { flowers, loading } = useFlowerStock()
   const { saveOrder } = useNewOrder()
 
-  const [clientName, setClientName] = useState('')
-  const [clientPhone, setClientPhone] = useState('')
+  const [clientName, setClientName] = useState(initialClientName)
+  const [clientPhone, setClientPhone] = useState(initialClientPhone)
   const [readyAt, setReadyAt] = useState('')
   const [deliveryType, setDeliveryType] = useState('самовывоз')
   const [address, setAddress] = useState('')

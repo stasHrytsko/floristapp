@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const FINAL_STATUSES = ['выдан', 'доставлен']
-
 export function useOrders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,7 +25,7 @@ export function useOrders() {
             flowers ( name )
           )
         `)
-        .not('status', 'in', `(${FINAL_STATUSES.map((s) => `"${s}"`).join(',')})`)
+        .not('status', 'eq', 'выполнен')
         .order('ready_at', { ascending: true })
 
       if (err) throw err
@@ -43,11 +41,20 @@ export function useOrders() {
     fetchData()
   }, [])
 
+  async function changeStatus(id) {
+    const { error: err } = await supabase
+      .from('orders')
+      .update({ status: 'выполнен' })
+      .eq('id', id)
+    if (err) throw new Error('Не удалось обновить статус')
+    setOrders((prev) => prev.filter((o) => o.id !== id))
+  }
+
   async function deleteOrder(id) {
     const { error: err } = await supabase.from('orders').delete().eq('id', id)
     if (err) throw new Error('Не удалось удалить заказ')
     setOrders((prev) => prev.filter((o) => o.id !== id))
   }
 
-  return { orders, loading, error, refresh: fetchData, deleteOrder }
+  return { orders, loading, error, refresh: fetchData, changeStatus, deleteOrder }
 }
