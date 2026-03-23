@@ -73,6 +73,12 @@ export default function App() {
   const [stockAddOpen, setStockAddOpen] = useState(false)
   const [supplierAddOpen, setSupplierAddOpen] = useState(false)
   const [deliveryAddOpen, setDeliveryAddOpen] = useState(false)
+  const [newOrderPrefill, setNewOrderPrefill] = useState(null)
+
+  function handleRecreateOrder(clientName, clientPhone) {
+    setNewOrderPrefill({ clientName, clientPhone })
+    setTab('neworder')
+  }
 
   function handleHeaderAdd() {
     if (tab === 'stock') setStockAddOpen(true)
@@ -111,14 +117,20 @@ export default function App() {
             onAddClose={() => setStockAddOpen(false)}
           />
         )}
-        {tab === 'neworder' && <NewOrderPage onBack={() => setTab('orders')} />}
+        {tab === 'neworder' && (
+          <NewOrderPage
+            initialClientName={newOrderPrefill?.clientName || ''}
+            initialClientPhone={newOrderPrefill?.clientPhone || ''}
+            onBack={() => { setNewOrderPrefill(null); setTab('orders') }}
+          />
+        )}
         {tab === 'delivery' && (
           <DeliveryPage
             addFormOpen={deliveryAddOpen}
             onAddFormClose={() => setDeliveryAddOpen(false)}
           />
         )}
-        {tab === 'orders' && <OrdersPage />}
+        {tab === 'orders' && <OrdersPage onRecreate={handleRecreateOrder} />}
         {tab === 'history' && <HistoryPage />}
         {tab === 'suppliers' && (
           <SuppliersPage

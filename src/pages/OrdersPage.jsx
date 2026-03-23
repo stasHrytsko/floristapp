@@ -160,18 +160,28 @@ function ClientsTab() {
   )
 }
 
-export default function OrdersPage() {
-  const { orders, loading, error, refresh, deleteOrder } = useOrders()
-  const [deleteError, setDeleteError] = useState(null)
+export default function OrdersPage({ onRecreate }) {
+  const { orders, loading, error, refresh, changeStatus, deleteOrder } = useOrders()
+  const [actionError, setActionError] = useState(null)
   const [mode, setMode] = useState('orders')
 
-  async function handleDelete(id) {
-    setDeleteError(null)
+  async function handleStatusChange(id) {
+    setActionError(null)
     try {
-      await deleteOrder(id)
+      await changeStatus(id)
     } catch (err) {
-      setDeleteError(err.message || 'Не удалось удалить заказ')
+      setActionError(err.message || 'Не удалось обновить статус')
     }
+  }
+
+  async function handleRecreate(order) {
+    setActionError(null)
+    try {
+      await deleteOrder(order.id)
+    } catch {
+      // продолжаем даже при ошибке удаления
+    }
+    if (onRecreate) onRecreate(order.client_name, order.client_phone)
   }
 
   return (
@@ -212,8 +222,8 @@ export default function OrdersPage() {
           )}
           {!loading && !error && (
             <div className="space-y-3">
-              {deleteError && (
-                <p className="text-red-500 text-xs text-center">{deleteError}</p>
+              {actionError && (
+                <p className="text-red-500 text-xs text-center">{actionError}</p>
               )}
               {orders.length === 0 ? (
                 <p className="text-center text-gray-400 mt-6 text-sm">Активных заказов нет</p>
@@ -222,7 +232,8 @@ export default function OrdersPage() {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    onDelete={() => handleDelete(order.id)}
+                    onStatusChange={handleStatusChange}
+                    onRecreate={() => handleRecreate(order)}
                   />
                 ))
               )}

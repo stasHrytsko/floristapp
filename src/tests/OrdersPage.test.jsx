@@ -23,7 +23,7 @@ const mockOrders = [
     client_name: 'Анна',
     client_phone: '+7 999 111 22 33',
     delivery_type: 'самовывоз',
-    status: 'новый',
+    status: 'активный',
     ready_at: '2026-03-20',
     delivery_address: null,
     order_items: [
@@ -36,7 +36,7 @@ const mockOrders = [
     client_name: 'Мария',
     client_phone: null,
     delivery_type: 'доставка',
-    status: 'в работе',
+    status: 'активный',
     ready_at: '2026-03-21',
     delivery_address: 'ул. Ленина, 5',
     order_items: [],
@@ -65,41 +65,45 @@ describe('OrdersPage', () => {
     useClients.mockReturnValue(defaultClientsMock())
   })
 
+  function defaultOrdersMock(overrides = {}) {
+    return { orders: [], loading: false, error: null, refresh: vi.fn(), changeStatus: vi.fn(), deleteOrder: vi.fn(), ...overrides }
+  }
+
   it('показывает загрузку', () => {
-    useOrders.mockReturnValue({ orders: [], loading: true, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock({ loading: true }))
     render(<OrdersPage />)
     expect(screen.getByText(/загрузка/i)).toBeDefined()
   })
 
   it('показывает ошибку с кнопкой повторить', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: 'Нет сети', refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock({ error: 'Нет сети' }))
     render(<OrdersPage />)
     expect(screen.getByText(/не удалось загрузить заказы/i)).toBeDefined()
     expect(screen.getByText(/повторить/i)).toBeDefined()
   })
 
   it('показывает сообщение при пустом списке', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     render(<OrdersPage />)
     expect(screen.getByText(/активных заказов нет/i)).toBeDefined()
   })
 
   it('рендерит карточки заказов', () => {
-    useOrders.mockReturnValue({ orders: mockOrders, loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock({ orders: mockOrders }))
     render(<OrdersPage />)
     expect(screen.getByText('Анна')).toBeDefined()
     expect(screen.getByText('Мария')).toBeDefined()
   })
 
   it('показывает переключатель Заказы / Клиенты', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     render(<OrdersPage />)
     expect(screen.getByText('Заказы')).toBeDefined()
     expect(screen.getByText('Клиенты')).toBeDefined()
   })
 
   it('переключается в режим клиентов и показывает список', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
@@ -108,7 +112,7 @@ describe('OrdersPage', () => {
   })
 
   it('в разделе клиентов есть кнопки Изменить и История', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
@@ -117,7 +121,7 @@ describe('OrdersPage', () => {
   })
 
   it('открывает форму редактирования клиента', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
@@ -126,7 +130,7 @@ describe('OrdersPage', () => {
   })
 
   it('открывает историю клиента', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     useClientOrders.mockReturnValue({
       orders: [
@@ -148,7 +152,7 @@ describe('OrdersPage', () => {
   })
 
   it('закрывает историю при нажатии ✕', () => {
-    useOrders.mockReturnValue({ orders: [], loading: false, error: null, refresh: vi.fn(), deleteOrder: vi.fn() })
+    useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
@@ -159,10 +163,10 @@ describe('OrdersPage', () => {
 })
 
 describe('OrderCard', () => {
-  it('показывает имя клиента и статус', () => {
+  it('показывает имя клиента и статус активный', () => {
     render(<OrderCard order={mockOrders[0]} />)
     expect(screen.getByText('Анна')).toBeDefined()
-    expect(screen.getByText('новый')).toBeDefined()
+    expect(screen.getByText('активный')).toBeDefined()
   })
 
   it('показывает состав заказа', () => {
@@ -187,45 +191,52 @@ describe('OrderCard', () => {
     expect(screen.queryByText(/\+7/)).toBeNull()
   })
 
-  it('показывает кнопку смены статуса когда передан onStatusChange', () => {
+  it('показывает кнопку → выполнен для активного заказа с onStatusChange', () => {
     render(<OrderCard order={mockOrders[0]} onStatusChange={vi.fn()} />)
-    expect(screen.getByText(/→ в работе/)).toBeDefined()
+    expect(screen.getByText(/→ выполнен/)).toBeDefined()
   })
 
-  it('не показывает кнопку смены статуса без onStatusChange', () => {
+  it('не показывает кнопку → выполнен без onStatusChange', () => {
     render(<OrderCard order={mockOrders[0]} />)
     expect(screen.queryByText(/→/)).toBeNull()
   })
 
-  it('показывает кнопку «Отменить заказ» когда передан onDelete', () => {
-    render(<OrderCard order={mockOrders[0]} onDelete={vi.fn()} />)
-    expect(screen.getByText(/отменить заказ/i)).toBeDefined()
+  it('вызывает onStatusChange с id заказа при клике', () => {
+    const onStatusChange = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onStatusChange={onStatusChange} />)
+    fireEvent.click(screen.getByText(/→ выполнен/))
+    expect(onStatusChange).toHaveBeenCalledWith('1')
   })
 
-  it('не показывает кнопку «Отменить заказ» без onDelete', () => {
+  it('показывает кнопку «Пересоздать заказ» когда передан onRecreate', () => {
+    render(<OrderCard order={mockOrders[0]} onRecreate={vi.fn()} />)
+    expect(screen.getByText(/пересоздать заказ/i)).toBeDefined()
+  })
+
+  it('не показывает кнопку «Пересоздать заказ» без onRecreate', () => {
     render(<OrderCard order={mockOrders[0]} />)
-    expect(screen.queryByText(/отменить заказ/i)).toBeNull()
+    expect(screen.queryByText(/пересоздать заказ/i)).toBeNull()
   })
 
-  it('показывает диалог подтверждения при клике «Отменить заказ»', () => {
-    render(<OrderCard order={mockOrders[0]} onDelete={vi.fn()} />)
-    fireEvent.click(screen.getByText(/отменить заказ/i))
+  it('показывает диалог подтверждения при клике «Пересоздать заказ»', () => {
+    render(<OrderCard order={mockOrders[0]} onRecreate={vi.fn()} />)
+    fireEvent.click(screen.getByText(/пересоздать заказ/i))
     expect(screen.getByText(/удалить заказ/i)).toBeDefined()
   })
 
-  it('вызывает onDelete после подтверждения', () => {
-    const onDelete = vi.fn()
-    render(<OrderCard order={mockOrders[0]} onDelete={onDelete} />)
-    fireEvent.click(screen.getByText(/отменить заказ/i))
+  it('вызывает onRecreate после подтверждения', () => {
+    const onRecreate = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onRecreate={onRecreate} />)
+    fireEvent.click(screen.getByText(/пересоздать заказ/i))
     fireEvent.click(screen.getByRole('button', { name: /^да$/i }))
-    expect(onDelete).toHaveBeenCalled()
+    expect(onRecreate).toHaveBeenCalled()
   })
 
-  it('не вызывает onDelete при отмене', () => {
-    const onDelete = vi.fn()
-    render(<OrderCard order={mockOrders[0]} onDelete={onDelete} />)
-    fireEvent.click(screen.getByText(/отменить заказ/i))
+  it('не вызывает onRecreate при отмене', () => {
+    const onRecreate = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onRecreate={onRecreate} />)
+    fireEvent.click(screen.getByText(/пересоздать заказ/i))
     fireEvent.click(screen.getByRole('button', { name: /отмена/i }))
-    expect(onDelete).not.toHaveBeenCalled()
+    expect(onRecreate).not.toHaveBeenCalled()
   })
 })
