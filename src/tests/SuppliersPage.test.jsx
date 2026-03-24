@@ -110,16 +110,16 @@ describe('SuppliersPage', () => {
     expect(deleteSupplier).not.toHaveBeenCalled()
   })
 
-  it('показывает кнопку «Детали» у каждого поставщика', () => {
+  it('показывает кнопку «История» у каждого поставщика', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     render(<SuppliersPage />)
-    expect(screen.getAllByText('Детали').length).toBe(2)
+    expect(screen.getAllByText('История').length).toBe(2)
   })
 
-  it('открывает bottom sheet при клике «Детали»', () => {
+  it('открывает bottom sheet при клике «История»', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     render(<SuppliersPage />)
-    fireEvent.click(screen.getAllByText('Детали')[0])
+    fireEvent.click(screen.getAllByText('История')[0])
     expect(screen.getByText(/поставки: розы опт/i)).toBeDefined()
   })
 
@@ -134,7 +134,7 @@ describe('SuppliersPage', () => {
       error: null,
     })
     render(<SuppliersPage />)
-    fireEvent.click(screen.getAllByText('Детали')[0])
+    fireEvent.click(screen.getAllByText('История')[0])
     expect(screen.getByText('03-20-2026')).toBeDefined()
     expect(screen.getByText('Роза')).toBeDefined()
     expect(screen.getByText('50 шт')).toBeDefined()
@@ -145,7 +145,7 @@ describe('SuppliersPage', () => {
   it('закрывает bottom sheet при нажатии на ✕', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     render(<SuppliersPage />)
-    fireEvent.click(screen.getAllByText('Детали')[0])
+    fireEvent.click(screen.getAllByText('История')[0])
     fireEvent.click(screen.getByText('✕'))
     expect(screen.queryByText(/поставки:/i)).toBeNull()
   })
