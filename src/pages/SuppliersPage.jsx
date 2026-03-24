@@ -208,15 +208,6 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
         )}
       </ul>
 
-      {!showAddForm && (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="w-full bg-green-600 text-white text-[15px] font-medium py-4 rounded-xl"
-        >
-          Добавить
-        </button>
-      )}
-
       {confirmDelete && (
         <ConfirmDialog
           message={`Удалить поставщика «${confirmDelete.name}»?`}
