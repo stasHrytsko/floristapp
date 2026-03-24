@@ -142,7 +142,7 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
     try {
       await deleteSupplier(id)
     } catch (err) {
-      setDeleteError('Не удалось удалить поставщика')
+      setDeleteError(err.message || 'Не удалось удалить поставщика')
     }
   }
 
