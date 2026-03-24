@@ -1,84 +1,91 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import DeliveryCard from '../components/DeliveryCard'
 
-vi.mock('../hooks/useDeliveryStatus', () => ({
-  useDeliveryStatus: vi.fn(),
-  DELIVERY_STATUSES: ['заказано', 'на складе'],
+vi.mock('../hooks/useDefect', () => ({
+  useDefect: vi.fn(),
+}))
+vi.mock('../components/ConfirmDialog', () => ({
+  default: ({ message, onConfirm, onCancel }) => (
+    <div>
+      <p>{message}</p>
+      <button onClick={onConfirm}>Да</button>
+      <button onClick={onCancel}>Отмена</button>
+    </div>
+  ),
 }))
 
-import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
+import { useDefect } from '../hooks/useDefect'
 
-const mockDelivery = (status = 'заказано', has_issues = false) => ({
-  id: '1',
-  delivered_at: '2026-03-17',
-  status,
-  has_issues,
+const mockDelivery = (batchIds = [null, null]) => ({
+  id: 'd1',
+  delivered_at: '2026-03-19',
   supplier_id: 'sup1',
   suppliers: { name: 'Розы опт' },
   delivery_items: [
-    { id: 'di1', quantity: 50, flowers: { id: 'f1', name: 'Роза' } },
-    { id: 'di2', quantity: 20, flowers: { id: 'f2', name: 'Тюльпан' } },
+    { id: 'di1', quantity: 25, batch_id: batchIds[0], flowers: { id: 'f1', name: 'Роза' } },
+    { id: 'di2', quantity: 10, batch_id: batchIds[1], flowers: { id: 'f2', name: 'Тюльпан' } },
   ],
 })
 
-function setup(advanceFn) {
-  const advanceStatus = advanceFn ?? vi.fn().mockResolvedValue(undefined)
-  const nextStatus = (s) => {
-    const arr = ['заказано', 'на складе']
-    const idx = arr.indexOf(s)
-    return idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : null
-  }
-  useDeliveryStatus.mockReturnValue({ advanceStatus, nextStatus })
-  return { advanceStatus }
-}
-
 describe('DeliveryCard', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useDefect.mockReturnValue({ markDefect: vi.fn().mockResolvedValue(undefined) })
+  })
 
   it('показывает поставщика и дату', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery()} onAccept={vi.fn()} onRefresh={vi.fn()} />)
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
     expect(screen.getByText('Розы опт')).toBeDefined()
-    expect(screen.getByText(/17/)).toBeDefined()
+    expect(screen.getByText('19.03.2026')).toBeDefined()
   })
 
-  it('показывает состав позиций', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery()} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText(/Роза × 50/)).toBeDefined()
-    expect(screen.getByText(/Тюльпан × 20/)).toBeDefined()
+  it('показывает позиции в формате • Цветок — qty шт', () => {
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    expect(screen.getByText(/Роза — 25 шт/)).toBeDefined()
+    expect(screen.getByText(/Тюльпан — 10 шт/)).toBeDefined()
   })
 
-  it('показывает текущий статус', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText('заказано')).toBeDefined()
+  it('показывает кнопки Изменить и Удалить', () => {
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    expect(screen.getByText('Изменить')).toBeDefined()
+    expect(screen.getByText('Удалить')).toBeDefined()
   })
 
-  it('показывает ⚠️ если есть проблемы', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery('на складе', true)} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText(/⚠️/)).toBeDefined()
+  it('кнопка Удалить активна когда нет batch_id', () => {
+    render(<DeliveryCard delivery={mockDelivery([null, null])} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    const btn = screen.getByText('Удалить').closest('button')
+    expect(btn.disabled).toBe(false)
   })
 
-  it('показывает кнопку «→ на складе» для статуса «заказано»', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.getByText(/→ на складе/)).toBeDefined()
+  it('кнопка Удалить неактивна если есть batch_id', () => {
+    render(<DeliveryCard delivery={mockDelivery(['b1', null])} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    const btn = screen.getByText('Удалить').closest('button')
+    expect(btn.disabled).toBe(true)
   })
 
-  it('не показывает кнопку на последнем статусе', () => {
-    setup()
-    render(<DeliveryCard delivery={mockDelivery('на складе')} onAccept={vi.fn()} onRefresh={vi.fn()} />)
-    expect(screen.queryByRole('button', { name: /→/ })).toBeNull()
+  it('вызывает onEdit при клике Изменить', () => {
+    const onEdit = vi.fn()
+    const delivery = mockDelivery()
+    render(<DeliveryCard delivery={delivery} onEdit={onEdit} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    fireEvent.click(screen.getByText('Изменить'))
+    expect(onEdit).toHaveBeenCalledWith(delivery)
   })
 
-  it('вызывает onAccept при переходе в "на складе"', () => {
-    setup()
-    const onAccept = vi.fn()
-    render(<DeliveryCard delivery={mockDelivery('заказано')} onAccept={onAccept} onRefresh={vi.fn()} />)
-    fireEvent.click(screen.getByText(/→ на складе/))
-    expect(onAccept).toHaveBeenCalled()
+  it('показывает диалог подтверждения при клике Удалить', () => {
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    fireEvent.click(screen.getByText('Удалить'))
+    expect(screen.getByText('Удалить поставку?')).toBeDefined()
+  })
+
+  it('показывает кнопки Брак для каждой позиции', () => {
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    expect(screen.getAllByText('Брак').length).toBe(2)
+  })
+
+  it('открывает форму брака при клике Брак', () => {
+    render(<DeliveryCard delivery={mockDelivery()} onEdit={vi.fn()} onDelete={vi.fn()} onRefresh={vi.fn()} />)
+    fireEvent.click(screen.getAllByText('Брак')[0])
+    expect(screen.getByText(/Брак: Роза/)).toBeDefined()
   })
 })

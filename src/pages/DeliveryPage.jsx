@@ -5,53 +5,32 @@ import { useDelivery } from '../hooks/useDelivery'
 import { useAddFlower } from '../hooks/useAddFlower'
 import { useDeliveries } from '../hooks/useDeliveries'
 import DeliveryCard from '../components/DeliveryCard'
-import DeliveryAcceptancePage from './DeliveryAcceptancePage'
+import SuppliersPage from './SuppliersPage'
 
 function newRow() {
   return { id: Date.now() + Math.random(), flowerId: '', quantity: '' }
 }
 
-export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
-  const [showForm, setShowForm] = useState(false)
-  const [filter, setFilter] = useState('active')
-  const [acceptingDelivery, setAcceptingDelivery] = useState(null)
-
-  const { suppliers, loading: suppLoading } = useSuppliers()
-  const { flowers, loading: flowLoading, refresh: refreshFlowers } = useFlowerStock()
-  const { saveDelivery } = useDelivery()
-  const { addFlower } = useAddFlower()
-  const { deliveries, loading: delivLoading, error: delivError, refresh } = useDeliveries(filter)
-
-  const [supplierId, setSupplierId] = useState('')
-  const [deliveredAt, setDeliveredAt] = useState(new Date().toISOString().split('T')[0])
-  const [rows, setRows] = useState([newRow()])
+function DeliveryForm({ title, initial, suppliers, flowers, addFlower, refreshFlowers, onSave, onCancel }) {
+  const [supplierId, setSupplierId] = useState(initial?.supplierId || '')
+  const [deliveredAt, setDeliveredAt] = useState(
+    initial?.deliveredAt || new Date().toISOString().split('T')[0]
+  )
+  const [rows, setRows] = useState(initial?.rows || [newRow()])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
-
   const [newFlowerRowId, setNewFlowerRowId] = useState(null)
   const [newFlowerName, setNewFlowerName] = useState('')
   const [addingFlower, setAddingFlower] = useState(false)
 
-  useEffect(() => {
-    if (addFormOpen) setShowForm(true)
-  }, [addFormOpen])
-
-  function handleFormClose() {
-    setShowForm(false)
-    onAddFormClose?.()
-  }
+  const isValid =
+    supplierId &&
+    deliveredAt &&
+    rows.length > 0 &&
+    rows.every((r) => r.flowerId && Number(r.quantity) > 0)
 
   function updateRow(id, patch) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
-  }
-
-  function addRow() {
-    setRows((prev) => [...prev, newRow()])
-  }
-
-  function removeRow(id) {
-    setRows((prev) => prev.filter((r) => r.id !== id))
   }
 
   async function handleAddFlower(rowId) {
@@ -69,27 +48,13 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
     }
   }
 
-  const isValid =
-    supplierId &&
-    deliveredAt &&
-    rows.length > 0 &&
-    rows.every((r) => r.flowerId && Number(r.quantity) > 0)
-
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    setSuccess(false)
     setSaving(true)
     try {
       const items = rows.map((r) => ({ flowerId: r.flowerId, quantity: Number(r.quantity) }))
-      await saveDelivery({ supplierId, deliveredAt, items })
-      setSuccess(true)
-      setRows([newRow()])
-      setSupplierId('')
-      setDeliveredAt(new Date().toISOString().split('T')[0])
-      setShowForm(false)
-      onAddFormClose?.()
-      refresh()
+      await onSave({ supplierId, deliveredAt, items })
     } catch (err) {
       setError(err.message || 'Ошибка сохранения')
     } finally {
@@ -97,13 +62,180 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
     }
   }
 
-  if (acceptingDelivery) {
-    return (
-      <DeliveryAcceptancePage
-        delivery={acceptingDelivery}
-        onDone={() => { setAcceptingDelivery(null); refresh() }}
-      />
-    )
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-gray-800 text-sm">{title}</p>
+        <button type="button" onClick={onCancel} className="text-gray-400 text-lg leading-none">✕</button>
+      </div>
+
+      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Поставщик</label>
+          <select
+            value={supplierId}
+            onChange={(e) => setSupplierId(e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">Выберите поставщика</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Дата поставки</label>
+          <input
+            type="date"
+            value={deliveredAt}
+            onChange={(e) => setDeliveredAt(e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      {rows.map((row, idx) => (
+        <div key={row.id} className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500 font-medium">Позиция {idx + 1}</span>
+            {rows.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setRows((prev) => prev.filter((r) => r.id !== row.id))}
+                className="text-xs text-red-400"
+              >
+                Удалить
+              </button>
+            )}
+          </div>
+
+          {newFlowerRowId === row.id ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="text"
+                placeholder="Название цветка"
+                value={newFlowerName}
+                onChange={(e) => setNewFlowerName(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={addingFlower || !newFlowerName.trim()}
+                onClick={() => handleAddFlower(row.id)}
+                className="text-sm text-white bg-green-600 px-3 rounded-lg disabled:opacity-50"
+              >
+                OK
+              </button>
+              <button
+                type="button"
+                onClick={() => { setNewFlowerRowId(null); setNewFlowerName('') }}
+                className="text-sm text-gray-400"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <select
+                value={row.flowerId}
+                onChange={(e) => updateRow(row.id, { flowerId: e.target.value })}
+                required
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Выберите цветок</option>
+                {flowers.map((f) => (
+                  <option key={f.flower_id} value={f.flower_id}>{f.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setNewFlowerRowId(row.id)}
+                className="text-sm text-green-600 border border-green-600 px-3 rounded-lg whitespace-nowrap"
+              >
+                + Новый
+              </button>
+            </div>
+          )}
+
+          <input
+            type="number"
+            min="1"
+            placeholder="Количество (шт)"
+            value={row.quantity}
+            onChange={(e) => updateRow(row.id, { quantity: e.target.value })}
+            required
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => setRows((prev) => [...prev, newRow()])}
+        className="w-full border border-green-600 text-green-600 text-sm py-2 rounded-xl"
+      >
+        + Добавить позицию
+      </button>
+
+      <button
+        type="submit"
+        disabled={saving || !isValid}
+        className="w-full bg-green-600 text-white text-sm py-3 rounded-xl disabled:opacity-50"
+      >
+        {saving ? 'Сохранение...' : 'Сохранить поставку'}
+      </button>
+    </form>
+  )
+}
+
+export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
+  const [subTab, setSubTab] = useState('deliveries')
+  const [showForm, setShowForm] = useState(false)
+  const [editingDelivery, setEditingDelivery] = useState(null)
+  const [success, setSuccess] = useState(false)
+  const [supplierAddOpen, setSupplierAddOpen] = useState(false)
+
+  const { suppliers, loading: suppLoading } = useSuppliers()
+  const { flowers, loading: flowLoading, refresh: refreshFlowers } = useFlowerStock()
+  const { saveDelivery } = useDelivery()
+  const { addFlower } = useAddFlower()
+  const {
+    deliveries,
+    loading: delivLoading,
+    error: delivError,
+    refresh,
+    deleteDelivery,
+    updateDelivery,
+  } = useDeliveries()
+
+  useEffect(() => {
+    if (addFormOpen) {
+      if (subTab === 'suppliers') setSupplierAddOpen(true)
+      else setShowForm(true)
+    }
+  }, [addFormOpen])
+
+  function handleFormClose() {
+    setShowForm(false)
+    onAddFormClose?.()
+  }
+
+  async function handleAdd({ supplierId, deliveredAt, items }) {
+    await saveDelivery({ supplierId, deliveredAt, items })
+    setSuccess(true)
+    setShowForm(false)
+    onAddFormClose?.()
+    refresh()
+  }
+
+  async function handleUpdate({ supplierId, deliveredAt, items }) {
+    await updateDelivery(editingDelivery.id, { supplierId, deliveredAt, items })
+    setEditingDelivery(null)
   }
 
   if (suppLoading || flowLoading) {
@@ -118,166 +250,90 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
         </p>
       )}
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-gray-800 text-sm">Новая поставка</p>
-            <button type="button" onClick={handleFormClose} className="text-gray-400 text-lg leading-none">✕</button>
-          </div>
-
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-          <div className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Поставщик</label>
-              <select
-                value={supplierId}
-                onChange={(e) => setSupplierId(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="">Выберите поставщика</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Дата поставки</label>
-              <input
-                type="date"
-                value={deliveredAt}
-                onChange={(e) => setDeliveredAt(e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          {rows.map((row, idx) => (
-            <div key={row.id} className="bg-white rounded-2xl p-4 border border-gray-100 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 font-medium">Позиция {idx + 1}</span>
-                {rows.length > 1 && (
-                  <button type="button" onClick={() => removeRow(row.id)} className="text-xs text-red-400">
-                    Удалить
-                  </button>
-                )}
-              </div>
-
-              {newFlowerRowId === row.id ? (
-                <div className="flex gap-2">
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Название цветка"
-                    value={newFlowerName}
-                    onChange={(e) => setNewFlowerName(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                  <button
-                    type="button"
-                    disabled={addingFlower || !newFlowerName.trim()}
-                    onClick={() => handleAddFlower(row.id)}
-                    className="text-sm text-white bg-green-600 px-3 rounded-lg disabled:opacity-50"
-                  >
-                    OK
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setNewFlowerRowId(null); setNewFlowerName('') }}
-                    className="text-sm text-gray-400"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    value={row.flowerId}
-                    onChange={(e) => updateRow(row.id, { flowerId: e.target.value })}
-                    required
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="">Выберите цветок</option>
-                    {flowers.map((f) => (
-                      <option key={f.flower_id} value={f.flower_id}>{f.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setNewFlowerRowId(row.id)}
-                    className="text-sm text-green-600 border border-green-600 px-3 rounded-lg whitespace-nowrap"
-                  >
-                    + Новый
-                  </button>
-                </div>
-              )}
-
-              <input
-                type="number"
-                min="1"
-                placeholder="Количество (шт)"
-                value={row.quantity}
-                onChange={(e) => updateRow(row.id, { quantity: e.target.value })}
-                required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={addRow}
-            className="w-full border border-green-600 text-green-600 text-sm py-2 rounded-xl"
-          >
-            + Добавить позицию
-          </button>
-
-          <button
-            type="submit"
-            disabled={saving || !isValid}
-            className="w-full bg-green-600 text-white text-sm py-3 rounded-xl disabled:opacity-50"
-          >
-            {saving ? 'Сохранение...' : 'Сохранить поставку'}
-          </button>
-        </form>
-      )}
-
       <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5">
         <button
-          onClick={() => setFilter('active')}
+          onClick={() => setSubTab('deliveries')}
           className={`flex-1 py-2 text-sm rounded-full transition-colors font-medium ${
-            filter === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            subTab === 'deliveries' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
         >
-          Активные
+          Поставки
         </button>
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => setSubTab('suppliers')}
           className={`flex-1 py-2 text-sm rounded-full transition-colors font-medium ${
-            filter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            subTab === 'suppliers' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
         >
-          Все
+          Поставщики
         </button>
       </div>
 
-      {delivLoading && <p className="text-center text-gray-400 text-sm">Загрузка...</p>}
-      {delivError && <p className="text-center text-red-500 text-sm">{delivError}</p>}
-
-      {!delivLoading && !delivError && deliveries.length === 0 && (
-        <p className="text-center text-gray-400 text-sm mt-4">Поставок нет</p>
+      {subTab === 'suppliers' && (
+        <SuppliersPage
+          addFormOpen={supplierAddOpen}
+          onAddFormClose={() => {
+            setSupplierAddOpen(false)
+            onAddFormClose?.()
+          }}
+        />
       )}
 
-      {deliveries.map((d) => (
-        <DeliveryCard
-          key={d.id}
-          delivery={d}
-          onAccept={() => setAcceptingDelivery(d)}
-          onRefresh={refresh}
-        />
-      ))}
+      {subTab === 'deliveries' && (
+        <>
+          {showForm && (
+            <DeliveryForm
+              title="Новая поставка"
+              suppliers={suppliers}
+              flowers={flowers}
+              addFlower={addFlower}
+              refreshFlowers={refreshFlowers}
+              onSave={handleAdd}
+              onCancel={handleFormClose}
+            />
+          )}
+
+          {editingDelivery && (
+            <DeliveryForm
+              title="Редактировать поставку"
+              initial={{
+                supplierId: editingDelivery.supplier_id,
+                deliveredAt: editingDelivery.delivered_at,
+                rows: editingDelivery.delivery_items?.map((i) => ({
+                  id: i.id,
+                  flowerId: i.flowers?.id || '',
+                  quantity: String(i.quantity),
+                })) || [],
+              }}
+              suppliers={suppliers}
+              flowers={flowers}
+              addFlower={addFlower}
+              refreshFlowers={refreshFlowers}
+              onSave={handleUpdate}
+              onCancel={() => setEditingDelivery(null)}
+            />
+          )}
+
+          {delivLoading && <p className="text-center text-gray-400 text-sm">Загрузка...</p>}
+          {delivError && <p className="text-center text-red-500 text-sm">{delivError}</p>}
+
+          {!delivLoading && !delivError && !showForm && !editingDelivery && deliveries.length === 0 && (
+            <p className="text-center text-gray-400 text-sm mt-4">Поставок нет</p>
+          )}
+
+          {!showForm &&
+            !editingDelivery &&
+            deliveries.map((d) => (
+              <DeliveryCard
+                key={d.id}
+                delivery={d}
+                onEdit={setEditingDelivery}
+                onDelete={deleteDelivery}
+                onRefresh={refresh}
+              />
+            ))}
+        </>
+      )}
     </div>
   )
 }
