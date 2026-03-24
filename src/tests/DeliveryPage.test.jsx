@@ -7,6 +7,9 @@ vi.mock('../hooks/useFlowerStock', () => ({ useFlowerStock: vi.fn() }))
 vi.mock('../hooks/useDelivery', () => ({ useDelivery: vi.fn() }))
 vi.mock('../hooks/useAddFlower', () => ({ useAddFlower: vi.fn() }))
 vi.mock('../hooks/useDeliveries', () => ({ useDeliveries: vi.fn() }))
+vi.mock('../pages/SuppliersPage', () => ({
+  default: ({ addFormOpen }) => <div>Список поставщиков{addFormOpen ? '-форма' : ''}</div>,
+}))
 
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useFlowerStock } from '../hooks/useFlowerStock'
@@ -22,20 +25,11 @@ const mockDeliveries = [
   {
     id: 'd1',
     delivered_at: '2026-03-17',
-    status: 'заказано',
-    has_issues: false,
     supplier_id: '1',
     suppliers: { name: 'Розы опт' },
-    delivery_items: [{ id: 'di1', quantity: 50, flowers: { id: '10', name: 'Роза' } }],
+    delivery_items: [{ id: 'di1', quantity: 50, batch_id: null, flowers: { id: '10', name: 'Роза' } }],
   },
 ]
-
-// DeliveryCard uses useDeliveryStatus internally — mock it
-vi.mock('../hooks/useDeliveryStatus', () => ({
-  useDeliveryStatus: vi.fn(),
-  DELIVERY_STATUSES: ['заказано', 'на складе'],
-}))
-import { useDeliveryStatus } from '../hooks/useDeliveryStatus'
 
 function setup(saveDeliveryOverride) {
   const saveDelivery = saveDeliveryOverride ?? vi.fn().mockResolvedValue(undefined)
@@ -43,14 +37,13 @@ function setup(saveDeliveryOverride) {
   useFlowerStock.mockReturnValue({ flowers: mockFlowers, loading: false, error: null, refresh: vi.fn() })
   useDelivery.mockReturnValue({ saveDelivery })
   useAddFlower.mockReturnValue({ addFlower: vi.fn().mockResolvedValue({ id: '99', name: 'Новый' }) })
-  useDeliveries.mockReturnValue({ deliveries: mockDeliveries, loading: false, error: null, refresh: vi.fn() })
-  useDeliveryStatus.mockReturnValue({
-    advanceStatus: vi.fn().mockResolvedValue(undefined),
-    nextStatus: (s) => {
-      const arr = ['заказано', 'на складе']
-      const idx = arr.indexOf(s)
-      return idx >= 0 && idx < arr.length - 1 ? arr[idx + 1] : null
-    },
+  useDeliveries.mockReturnValue({
+    deliveries: mockDeliveries,
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+    deleteDelivery: vi.fn(),
+    updateDelivery: vi.fn(),
   })
   return { saveDelivery }
 }
@@ -70,17 +63,23 @@ describe('DeliveryPage', () => {
     useFlowerStock.mockReturnValue({ flowers: [], loading: false, error: null, refresh: vi.fn() })
     useDelivery.mockReturnValue({ saveDelivery: vi.fn() })
     useAddFlower.mockReturnValue({ addFlower: vi.fn() })
-    useDeliveries.mockReturnValue({ deliveries: [], loading: false, error: null, refresh: vi.fn() })
-    useDeliveryStatus.mockReturnValue({ advanceStatus: vi.fn(), nextStatus: vi.fn() })
+    useDeliveries.mockReturnValue({ deliveries: [], loading: false, error: null, refresh: vi.fn(), deleteDelivery: vi.fn(), updateDelivery: vi.fn() })
     render(<DeliveryPage />)
     expect(screen.getByText(/загрузка/i)).toBeDefined()
   })
 
-  it('показывает фильтр активные/все', () => {
+  it('показывает переключатель Поставки/Поставщики', () => {
     setup()
     render(<DeliveryPage />)
-    expect(screen.getByText('Активные')).toBeDefined()
-    expect(screen.getByText('Все')).toBeDefined()
+    expect(screen.getByText('Поставки')).toBeDefined()
+    expect(screen.getByText('Поставщики')).toBeDefined()
+  })
+
+  it('показывает SuppliersPage при переходе на вкладку Поставщики', () => {
+    setup()
+    render(<DeliveryPage />)
+    fireEvent.click(screen.getByText('Поставщики'))
+    expect(screen.getByText('Список поставщиков')).toBeDefined()
   })
 
   it('показывает карточку поставки в списке', () => {
@@ -94,6 +93,14 @@ describe('DeliveryPage', () => {
     render(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     expect(screen.getAllByText(/поставщик/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/дата поставки/i)).toBeDefined()
+  })
+
+  it('передаёт addFormOpen в SuppliersPage при переключении на вкладку Поставщики', async () => {
+    setup()
+    const { rerender } = render(<DeliveryPage addFormOpen={false} onAddFormClose={vi.fn()} />)
+    fireEvent.click(screen.getByText('Поставщики'))
+    rerender(<DeliveryPage addFormOpen={true} onAddFormClose={vi.fn()} />)
+    await waitFor(() => expect(screen.getByText('Список поставщиков-форма')).toBeDefined())
   })
 
   it('добавляет позицию в форме', () => {

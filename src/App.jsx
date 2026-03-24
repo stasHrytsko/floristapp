@@ -4,7 +4,6 @@ import { useOnlineStatus } from './hooks/useOnlineStatus'
 import StockPage from './pages/StockPage'
 import HistoryPage from './pages/HistoryPage'
 import OrdersPage from './pages/OrdersPage'
-import SuppliersPage from './pages/SuppliersPage'
 import DeliveryPage from './pages/DeliveryPage'
 import NewOrderPage from './pages/NewOrderPage'
 
@@ -45,15 +44,6 @@ const TABS = [
       </svg>
     ),
   },
-  {
-    id: 'suppliers',
-    label: 'Поставщики',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-      </svg>
-    ),
-  },
 ]
 
 const PAGE_TITLES = {
@@ -62,16 +52,14 @@ const PAGE_TITLES = {
   delivery: 'Поставки',
   orders: 'Заказы',
   history: 'История движения',
-  suppliers: 'Поставщики',
 }
 
-const TABS_WITH_ADD = ['stock', 'orders', 'delivery', 'suppliers']
+const TABS_WITH_ADD = ['stock', 'orders', 'delivery']
 
 export default function App() {
   const [tab, setTab] = useState('stock')
   const online = useOnlineStatus()
   const [stockAddOpen, setStockAddOpen] = useState(false)
-  const [supplierAddOpen, setSupplierAddOpen] = useState(false)
   const [deliveryAddOpen, setDeliveryAddOpen] = useState(false)
   const [newOrderPrefill, setNewOrderPrefill] = useState(null)
 
@@ -83,7 +71,6 @@ export default function App() {
   function handleHeaderAdd() {
     if (tab === 'stock') setStockAddOpen(true)
     else if (tab === 'orders') setTab('neworder')
-    else if (tab === 'suppliers') setSupplierAddOpen(true)
     else if (tab === 'delivery') setDeliveryAddOpen(true)
   }
 
@@ -98,7 +85,7 @@ export default function App() {
             onClick={handleHeaderAdd}
             className="bg-green-500 text-white text-sm font-medium px-4 py-1.5 rounded-full leading-none"
           >
-            {tab === 'suppliers' ? 'Добавить' : '+'}
+            +
           </button>
         )}
       </header>
@@ -111,33 +98,24 @@ export default function App() {
 
       <main className="px-4 py-4 flex-1">
         <ErrorBoundary>
-        {tab === 'stock' && (
-          <StockPage
-            addModalOpen={stockAddOpen}
-            onAddClose={() => setStockAddOpen(false)}
-          />
-        )}
-        {tab === 'neworder' && (
-          <NewOrderPage
-            initialClientName={newOrderPrefill?.clientName || ''}
-            initialClientPhone={newOrderPrefill?.clientPhone || ''}
-            onBack={() => { setNewOrderPrefill(null); setTab('orders') }}
-          />
-        )}
-        {tab === 'delivery' && (
-          <DeliveryPage
-            addFormOpen={deliveryAddOpen}
-            onAddFormClose={() => setDeliveryAddOpen(false)}
-          />
-        )}
-        {tab === 'orders' && <OrdersPage onRecreate={handleRecreateOrder} />}
-        {tab === 'history' && <HistoryPage />}
-        {tab === 'suppliers' && (
-          <SuppliersPage
-            addFormOpen={supplierAddOpen}
-            onAddFormClose={() => setSupplierAddOpen(false)}
-          />
-        )}
+          {tab === 'stock' && (
+            <StockPage addModalOpen={stockAddOpen} onAddClose={() => setStockAddOpen(false)} />
+          )}
+          {tab === 'neworder' && (
+            <NewOrderPage
+              initialClientName={newOrderPrefill?.clientName || ''}
+              initialClientPhone={newOrderPrefill?.clientPhone || ''}
+              onBack={() => { setNewOrderPrefill(null); setTab('orders') }}
+            />
+          )}
+          {tab === 'delivery' && (
+            <DeliveryPage
+              addFormOpen={deliveryAddOpen}
+              onAddFormClose={() => setDeliveryAddOpen(false)}
+            />
+          )}
+          {tab === 'orders' && <OrdersPage onRecreate={handleRecreateOrder} />}
+          {tab === 'history' && <HistoryPage />}
         </ErrorBoundary>
       </main>
 
