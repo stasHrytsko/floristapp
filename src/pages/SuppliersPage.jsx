@@ -3,8 +3,6 @@ import { useSuppliers } from '../hooks/useSuppliers'
 import { useSupplierDeliveries } from '../hooks/useSupplierDeliveries'
 import ConfirmDialog from '../components/ConfirmDialog'
 
-const MAX_SUPPLIERS = 5
-
 function SupplierForm({ initial, onSave, onCancel }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [phone, setPhone] = useState(initial?.phone ?? '')
@@ -72,7 +70,7 @@ function SupplierForm({ initial, onSave, onCancel }) {
 }
 
 function SupplierDeliveriesSheet({ supplier, onClose }) {
-  const { deliveries, loading } = useSupplierDeliveries(supplier.id)
+  const { rows, loading } = useSupplierDeliveries(supplier.id)
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
@@ -86,24 +84,24 @@ function SupplierDeliveriesSheet({ supplier, onClose }) {
         </div>
         {loading ? (
           <p className="text-sm text-gray-400 text-center">Загрузка...</p>
-        ) : deliveries.length === 0 ? (
+        ) : rows.length === 0 ? (
           <p className="text-sm text-gray-400 text-center">Поставок нет</p>
         ) : (
-          <div className="space-y-3">
-            {deliveries.map((d) => (
-              <div key={d.id} className="border border-gray-100 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-800">{d.delivered_at}</span>
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{d.status}</span>
-                </div>
-                <div className="text-sm text-gray-600 space-y-0.5">
-                  {(d.delivery_items || []).map((item, i) => (
-                    <p key={i}>{item.flowers?.name || '—'} × {item.quantity} шт</p>
-                  ))}
-                </div>
-              </div>
+          <ul className="space-y-2">
+            {rows.map((row, i) => (
+              <li key={i} className="text-sm text-gray-700 py-2 border-b border-gray-50 last:border-0">
+                <span className="text-gray-400 mr-1">{row.date}</span>
+                {' — '}
+                <span className="font-medium">{row.name}</span>
+                {' — '}
+                <span>{row.quantity} шт</span>
+                {' — '}
+                <span className={row.defects > 0 ? 'text-red-500' : 'text-gray-400'}>
+                  брак: {row.defects}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>
@@ -118,11 +116,9 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [detailsSupplier, setDetailsSupplier] = useState(null)
 
-  const atLimit = suppliers.length >= MAX_SUPPLIERS
-
   useEffect(() => {
-    if (addFormOpen && !atLimit) setShowAddForm(true)
-  }, [addFormOpen, atLimit])
+    if (addFormOpen) setShowAddForm(true)
+  }, [addFormOpen])
 
   function handleFormClose() {
     setShowAddForm(false)
@@ -160,10 +156,6 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[13px] text-gray-400">{suppliers.length} из {MAX_SUPPLIERS}</span>
-      </div>
-
       {showAddForm && (
         <SupplierForm onSave={handleAdd} onCancel={handleFormClose} />
       )}
@@ -219,10 +211,9 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
       {!showAddForm && (
         <button
           onClick={() => setShowAddForm(true)}
-          disabled={atLimit}
-          className="w-full bg-green-600 text-white text-sm py-3 rounded-xl disabled:opacity-40"
+          className="w-full bg-green-600 text-white text-[15px] font-medium py-4 rounded-xl"
         >
-          {atLimit ? `Максимум ${MAX_SUPPLIERS} поставщиков` : '+ Добавить поставщика'}
+          Добавить
         </button>
       )}
 

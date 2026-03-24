@@ -6,7 +6,7 @@ vi.mock('../hooks/useSuppliers', () => ({
   useSuppliers: vi.fn(),
 }))
 vi.mock('../hooks/useSupplierDeliveries', () => ({
-  useSupplierDeliveries: vi.fn(() => ({ deliveries: [], loading: false })),
+  useSupplierDeliveries: vi.fn(() => ({ rows: [], loading: false })),
 }))
 
 import { useSuppliers } from '../hooks/useSuppliers'
@@ -16,12 +16,6 @@ const mockSuppliers = [
   { id: '1', name: 'Розы опт', phone: '+7 900 111 22 33' },
   { id: '2', name: 'ЦветТорг', phone: '+7 900 444 55 66' },
 ]
-
-const fiveSuppliers = Array.from({ length: 5 }, (_, i) => ({
-  id: String(i + 1),
-  name: `Поставщик ${i + 1}`,
-  phone: '',
-}))
 
 function defaultMock(overrides = {}) {
   return {
@@ -63,24 +57,18 @@ describe('SuppliersPage', () => {
     expect(screen.getByText('ЦветТорг')).toBeDefined()
   })
 
-  it('показывает счётчик "N из 5"', () => {
-    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
-    render(<SuppliersPage />)
-    expect(screen.getByText('2 из 5')).toBeDefined()
-  })
-
-  it('кнопка «Добавить» активна когда < 5 поставщиков', () => {
+  it('кнопка «Добавить» активна', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     render(<SuppliersPage />)
     const btn = screen.getByRole('button', { name: /добавить/i })
     expect(btn.disabled).toBe(false)
   })
 
-  it('кнопка «Добавить» заблокирована при 5 поставщиках', () => {
-    useSuppliers.mockReturnValue(defaultMock({ suppliers: fiveSuppliers }))
+  it('кнопка «Добавить» отсутствует когда показана форма', () => {
+    useSuppliers.mockReturnValue(defaultMock())
     render(<SuppliersPage />)
-    const btn = screen.getByRole('button', { name: /максимум/i })
-    expect(btn.disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: /добавить/i }))
+    expect(screen.queryByRole('button', { name: /^добавить$/i })).toBeNull()
   })
 
   it('показывает форму при клике «Добавить»', () => {
@@ -151,26 +139,22 @@ describe('SuppliersPage', () => {
     expect(screen.getByText(/поставки: розы опт/i)).toBeDefined()
   })
 
-  it('показывает поставки в bottom sheet', () => {
+  it('показывает поставки в формате дата — название — количество — брак', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     useSupplierDeliveries.mockReturnValue({
-      deliveries: [
-        {
-          id: 'd1',
-          delivered_at: '2026-03-20',
-          status: 'на складе',
-          delivery_items: [
-            { quantity: 50, flowers: { name: 'Роза' } },
-          ],
-        },
+      rows: [
+        { date: '20-03-2026', name: 'Роза', quantity: 50, defects: 3 },
+        { date: '15-03-2026', name: 'Тюльпан', quantity: 30, defects: 0 },
       ],
       loading: false,
     })
     render(<SuppliersPage />)
     fireEvent.click(screen.getAllByText('Детали')[0])
-    expect(screen.getByText('2026-03-20')).toBeDefined()
-    expect(screen.getByText('Роза × 50 шт')).toBeDefined()
-    expect(screen.getByText('на складе')).toBeDefined()
+    expect(screen.getByText('20-03-2026')).toBeDefined()
+    expect(screen.getByText('Роза')).toBeDefined()
+    expect(screen.getByText('50 шт')).toBeDefined()
+    expect(screen.getByText('брак: 3')).toBeDefined()
+    expect(screen.getByText('брак: 0')).toBeDefined()
   })
 
   it('закрывает bottom sheet при нажатии на ✕', () => {
