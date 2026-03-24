@@ -57,32 +57,16 @@ describe('SuppliersPage', () => {
     expect(screen.getByText('ЦветТорг')).toBeDefined()
   })
 
-  it('кнопка «Добавить» активна', () => {
-    useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
-    render(<SuppliersPage />)
-    const btn = screen.getByRole('button', { name: /добавить/i })
-    expect(btn.disabled).toBe(false)
-  })
-
-  it('кнопка «Добавить» отсутствует когда показана форма', () => {
+  it('показывает форму при addFormOpen=true', () => {
     useSuppliers.mockReturnValue(defaultMock())
-    render(<SuppliersPage />)
-    fireEvent.click(screen.getByRole('button', { name: /добавить/i }))
-    expect(screen.queryByRole('button', { name: /^добавить$/i })).toBeNull()
-  })
-
-  it('показывает форму при клике «Добавить»', () => {
-    useSuppliers.mockReturnValue(defaultMock())
-    render(<SuppliersPage />)
-    fireEvent.click(screen.getByRole('button', { name: /добавить/i }))
+    render(<SuppliersPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     expect(screen.getByPlaceholderText(/имя поставщика/i)).toBeDefined()
   })
 
   it('вызывает addSupplier при отправке формы', async () => {
     const addSupplier = vi.fn().mockResolvedValue(undefined)
     useSuppliers.mockReturnValue(defaultMock({ addSupplier }))
-    render(<SuppliersPage />)
-    fireEvent.click(screen.getByRole('button', { name: /добавить/i }))
+    render(<SuppliersPage addFormOpen={true} onAddFormClose={vi.fn()} />)
     fireEvent.change(screen.getByPlaceholderText(/имя поставщика/i), {
       target: { value: 'Новый поставщик' },
     })
