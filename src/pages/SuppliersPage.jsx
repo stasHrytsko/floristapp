@@ -186,9 +186,9 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setDetailsSupplier(s)}
-                  className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
+                  className="flex-1 bg-gray-100 text-gray-400 text-sm py-2.5 rounded-xl font-medium"
                 >
-                  Детали
+                  История
                 </button>
                 <button
                   onClick={() => setEditingId(s.id)}
