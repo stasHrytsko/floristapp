@@ -6,7 +6,7 @@ vi.mock('../hooks/useSuppliers', () => ({
   useSuppliers: vi.fn(),
 }))
 vi.mock('../hooks/useSupplierDeliveries', () => ({
-  useSupplierDeliveries: vi.fn(() => ({ rows: [], loading: false })),
+  useSupplierDeliveries: vi.fn(() => ({ rows: [], loading: false, error: null })),
 }))
 
 import { useSuppliers } from '../hooks/useSuppliers'
@@ -143,14 +143,15 @@ describe('SuppliersPage', () => {
     useSuppliers.mockReturnValue(defaultMock({ suppliers: mockSuppliers }))
     useSupplierDeliveries.mockReturnValue({
       rows: [
-        { date: '20-03-2026', name: 'Роза', quantity: 50, defects: 3 },
-        { date: '15-03-2026', name: 'Тюльпан', quantity: 30, defects: 0 },
+        { date: '03-20-2026', name: 'Роза', quantity: 50, defects: 3 },
+        { date: '03-15-2026', name: 'Тюльпан', quantity: 30, defects: 0 },
       ],
       loading: false,
+      error: null,
     })
     render(<SuppliersPage />)
     fireEvent.click(screen.getAllByText('Детали')[0])
-    expect(screen.getByText('20-03-2026')).toBeDefined()
+    expect(screen.getByText('03-20-2026')).toBeDefined()
     expect(screen.getByText('Роза')).toBeDefined()
     expect(screen.getByText('50 шт')).toBeDefined()
     expect(screen.getByText('брак: 3')).toBeDefined()
