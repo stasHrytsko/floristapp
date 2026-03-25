@@ -26,7 +26,6 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
   const [showForm, setShowForm] = useState(false)
   const [flowerId, setFlowerId] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
@@ -42,7 +41,6 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
     setShowForm(false)
     setFlowerId('')
     setQuantity('')
-    setComment('')
     setSaveError(null)
     onAddFormClose?.()
   }
@@ -52,7 +50,7 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
     setSaving(true)
     setSaveError(null)
     try {
-      await createWriteOff({ flowerId, quantity: Number(quantity), comment })
+      await createWriteOff({ flowerId, quantity: Number(quantity) })
       refresh()
       handleClose()
     } catch (err) {
@@ -114,17 +112,6 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
               onChange={(e) => setQuantity(e.target.value)}
               required
               placeholder="шт"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Комментарий</label>
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Необязательно"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
             />
           </div>
