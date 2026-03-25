@@ -1,6 +1,14 @@
 -- FloristApp — схема БД
 -- Запустить в Supabase: SQL Editor → New query → вставить всё → Run
 
+-- Клиенты
+create table clients (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  created_at timestamptz default now()
+);
+
 -- Поставщики
 create table suppliers (
   id uuid primary key default gen_random_uuid(),
@@ -31,12 +39,14 @@ create table batches (
 -- Заказы
 create table orders (
   id uuid primary key default gen_random_uuid(),
+  client_id uuid references clients(id),
   client_name text not null,
   client_phone text,
   delivery_type text not null check (delivery_type in ('самовывоз', 'доставка')),
   delivery_address text,
-  ready_at date not null,
+  ready_at timestamptz not null,
   status text not null default 'новый',
+  comment text,
   created_at timestamptz default now()
 );
 
@@ -86,9 +96,9 @@ create table movements (
   id uuid primary key default gen_random_uuid(),
   flower_id uuid references flowers(id) not null,
   batch_id uuid references batches(id),
-  order_id uuid references orders(id),
+  order_id uuid references orders(id) on delete cascade,
   defect_id uuid references defects(id),
-  movement_type text not null check (movement_type in ('поставка', 'резерв', 'выдача', 'списание')),
+  movement_type text not null check (movement_type in ('поставка', 'резерв', 'выдача', 'списание', 'отмена_резерва')),
   quantity int not null,
   created_at timestamptz default now()
 );
@@ -98,21 +108,25 @@ create view flower_stock as
 select
   f.id as flower_id,
   f.name,
-  coalesce(sum(case
-    when m.movement_type = 'поставка' then m.quantity
-    when m.movement_type in ('выдача', 'списание') then -m.quantity
-    else 0
-  end), 0) as total,
-  coalesce(sum(case
-    when m.movement_type = 'резерв' then m.quantity
-    else 0
-  end), 0) as reserved,
-  coalesce(sum(case
-    when m.movement_type = 'поставка' then m.quantity
-    when m.movement_type in ('выдача', 'списание') then -m.quantity
-    when m.movement_type = 'резерв' then -m.quantity
-    else 0
-  end), 0) as available
+  -- Всего поставлено исторически
+  coalesce(sum(case when m.movement_type = 'поставка' then m.quantity else 0 end), 0) as total,
+  
+  -- Всего продано/выдано
+  coalesce(sum(case when m.movement_type = 'выдача' then m.quantity else 0 end), 0) as sold,
+
+  -- Текущий резерв (активные заказы) = резервировали минус то, что уже выдали или отменили
+  coalesce(sum(case when m.movement_type = 'резерв' then m.quantity else 0 end), 0) -
+  coalesce(sum(case when m.movement_type = 'выдача' then m.quantity else 0 end), 0) -
+  coalesce(sum(case when m.movement_type = 'отмена_резерва' then m.quantity else 0 end), 0) as reserved,
+
+  -- Доступно = поставлено минус брак минус (текущий активный резерв)
+  coalesce(sum(case when m.movement_type = 'поставка' then m.quantity else 0 end), 0) -
+  coalesce(sum(case when m.movement_type = 'списание' then m.quantity else 0 end), 0) -
+  (
+    coalesce(sum(case when m.movement_type = 'резерв' then m.quantity else 0 end), 0) -
+    coalesce(sum(case when m.movement_type = 'выдача' then m.quantity else 0 end), 0) -
+    coalesce(sum(case when m.movement_type = 'отмена_резерва' then m.quantity else 0 end), 0)
+  ) as available
 from flowers f
 left join movements m on m.flower_id = f.id
 group by f.id, f.name;
