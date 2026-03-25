@@ -6,13 +6,13 @@ import { useOrders } from '../hooks/useOrders'
 import { useClients } from '../hooks/useClients'
 import { useClientOrders } from '../hooks/useClientOrders'
 
-function IconBtn({ label, bg, color, children, onClick }) {
+function IconBtn({ label, className = "", children, onClick }) {
   return (
     <button
       aria-label={label}
       onClick={onClick}
-      style={{ width: 44, height: 44, background: bg, color, borderRadius: 10, flexShrink: 0 }}
-      className="flex items-center justify-center"
+      style={{ width: 44, height: 44, flexShrink: 0 }}
+      className={`rounded-xl transition-colors flex items-center justify-center ${className}`}
     >
       {children}
     </button>
@@ -136,9 +136,9 @@ function ClientsTab() {
       ) : (
         <ul className="space-y-3">
           {clients.map((c) => (
-            <li key={c.id || c.name} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
-              <p className="text-[16px] font-bold text-gray-900">{c.name}</p>
-              <p className="text-[13px] text-gray-400 mb-3">{c.phone || '\u00a0'}</p>
+            <li key={c.id || c.name} className="bg-white rounded-2xl px-4 py-4 mb-3 border border-gray-100">
+              <p className="text-base font-bold text-gray-900">{c.name}</p>
+              <p className="text-sm text-gray-400 mb-4">{c.phone || '\u00a0'}</p>
               {editingId === (c.id || c.name) ? (
                 <ClientEditForm
                   client={c}
@@ -149,16 +149,14 @@ function ClientsTab() {
                 <div className="flex gap-2">
                   <IconBtn
                     label="изменить"
-                    bg="#fefce8"
-                    color="#a16207"
+                    className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
                     onClick={() => setEditingId(c.id || c.name)}
                   >
                     <EditOutlined sx={{ fontSize: 20 }} />
                   </IconBtn>
                   <IconBtn
                     label="история"
-                    bg="#f5f3ff"
-                    color="#7c3aed"
+                    className="bg-purple-50 text-purple-600 hover:bg-purple-100"
                     onClick={() => setHistoryClient(c)}
                   >
                     <HistoryOutlined sx={{ fontSize: 20 }} />
@@ -212,9 +210,9 @@ export default function OrdersPage({ onRecreate, onCreateNew }) {
 
   return (
     <div>
-      <div className="flex bg-gray-200 rounded-[10px] p-[3px] gap-[3px] mb-4">
+      <div className="flex bg-gray-200 rounded-xl p-1 gap-1 mb-4">
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-[8px] transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
             mode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => setMode('orders')}
@@ -222,7 +220,7 @@ export default function OrdersPage({ onRecreate, onCreateNew }) {
           Заказы
         </button>
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-[8px] transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
             mode === 'clients' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => setMode('clients')}
@@ -237,7 +235,7 @@ export default function OrdersPage({ onRecreate, onCreateNew }) {
         <>
           <button
             onClick={onCreateNew}
-            className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-[10px] mb-4"
+            className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-xl mb-4"
           >
             Создать заказ
           </button>

@@ -26,21 +26,23 @@ export default function StockPage() {
   return (
     <div>
       <div className="grid grid-cols-4 gap-2 mb-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
-          <p className="text-lg font-bold text-green-600">{totalAvailable}</p>
-          <p className="text-[11px] text-gray-400 leading-tight">свободно</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
-          <p className="text-lg font-bold text-yellow-500">{totalReserved}</p>
-          <p className="text-[11px] text-gray-400 leading-tight">резерв</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
-          <p className="text-lg font-bold text-gray-600">{totalAll}</p>
-          <p className="text-[11px] text-gray-400 leading-tight">всего</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
-          <p className="text-lg font-bold text-gray-600">{flowers.length}</p>
-          <p className="text-[11px] text-gray-400 leading-tight">видов</p>
+        <div className="flex gap-4 mb-4 bg-gray-50 p-3 rounded-2xl auto-cols-auto justify-between">
+          <div className="flex flex-col items-center">
+            <span className="text-xl font-bold text-green-600">{flowers.reduce((a, b) => a + (b.available > 0 ? b.available : 0), 0)}</span>
+            <p className="text-xs text-gray-400 leading-tight">свободно</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xl font-bold text-orange-500">{flowers.reduce((a, b) => a + b.reserved, 0)}</span>
+            <p className="text-xs text-gray-400 leading-tight">резерв</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xl font-bold text-gray-600">{flowers.reduce((a, b) => a + (b.available > 0 ? b.available : 0) + b.reserved, 0)}</span>
+            <p className="text-xs text-gray-400 leading-tight">всего</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xl font-bold text-purple-500">{flowers.length}</span>
+            <p className="text-xs text-gray-400 leading-tight">видов</p>
+          </div>
         </div>
       </div>
 

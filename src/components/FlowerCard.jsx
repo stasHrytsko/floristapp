@@ -39,19 +39,19 @@ function FlowerDetailsSheet({ flower, onClose }) {
         <div className="grid grid-cols-4 gap-2 mb-4">
           <div className="bg-gray-50 rounded-xl p-2 text-center">
             <p className="text-base font-bold text-gray-700">{flower.total ?? 0}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">поставлено</p>
+            <p className="text-xs text-gray-400 leading-tight">поставлено</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
             <p className="text-base font-bold text-blue-500">{flower.reserved ?? 0}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">резерв</p>
+            <p className="text-xs text-gray-400 leading-tight">резерв</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
             <p className="text-base font-bold text-purple-500">{flower.sold ?? 0}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">продано</p>
+            <p className="text-xs text-gray-400 leading-tight">продано</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
             <p className="text-base font-bold text-green-600">{flower.available ?? 0}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">остаток</p>
+            <p className="text-xs text-gray-400 leading-tight">остаток</p>
           </div>
         </div>
 
@@ -117,15 +117,15 @@ export default function FlowerCard({ flower }) {
             >
               {available}
             </span>
-            <span className="text-gray-400 text-[11px] leading-tight">своб.</span>
+            <span className="text-gray-400 text-xs leading-tight">своб.</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-base font-bold text-orange-500">{reserved}</span>
-            <span className="text-gray-400 text-[11px] leading-tight">рез.</span>
+            <span className="text-gray-400 text-xs leading-tight">рез.</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-base font-bold text-gray-600">{total}</span>
-            <span className="text-gray-400 text-[11px] leading-tight">всего</span>
+            <span className="text-gray-400 text-xs leading-tight">всего</span>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ export default function ConfirmDialog({ message, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
       <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-xl">
-        <p className="text-[16px] text-gray-800 text-center">{message}</p>
+        <p className="text-base text-gray-800 text-center">{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}

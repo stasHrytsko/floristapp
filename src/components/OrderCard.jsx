@@ -6,8 +6,8 @@ import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import ConfirmDialog from './ConfirmDialog'
 
 const STATUS_BADGE = {
-  резерв: { bg: '#eff6ff', color: '#1d4ed8' },
-  продано: { bg: '#f0fdf4', color: '#15803d' },
+  резерв: { bg: 'bg-blue-50', color: 'text-blue-700' },
+  продано: { bg: 'bg-green-50', color: 'text-green-700' },
 }
 
 function formatDate(dateStr) {
@@ -16,13 +16,13 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function IconBtn({ label, bg, color, size = 44, children, onClick }) {
+function IconBtn({ label, className = "", size = 44, children, onClick }) {
   return (
     <button
       aria-label={label}
       onClick={onClick}
-      style={{ width: size, height: size, background: bg, color, borderRadius: 10, flexShrink: 0 }}
-      className="flex items-center justify-center"
+      style={{ width: size, height: size, flexShrink: 0 }}
+      className={`rounded-xl transition-colors flex items-center justify-center ${className}`}
     >
       {children}
     </button>
@@ -89,15 +89,14 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
 
   const { client_name, status } = order
   const isRezerv = status === 'резерв'
-  const badge = STATUS_BADGE[status] || { bg: '#f3f4f6', color: '#6b7280' }
+  const badge = STATUS_BADGE[status] || { bg: 'bg-gray-100', color: 'text-gray-500' }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-[17px] font-bold text-gray-900 leading-tight">{client_name}</span>
+        <span className="text-base font-bold text-gray-900 leading-tight">{client_name}</span>
         <span
-          className="text-xs px-2.5 py-0.5 rounded-full font-medium ml-2 whitespace-nowrap"
-          style={{ background: badge.bg, color: badge.color }}
+          className={`text-xs px-2.5 py-0.5 rounded-full font-medium ml-2 whitespace-nowrap ${badge.bg} ${badge.color}`}
         >
           {status}
         </span>
@@ -105,17 +104,17 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
 
       <div className="border-t border-gray-100" />
 
-      <div className="flex items-center px-3 py-2 gap-1.5">
-        <IconBtn label="детали" bg="#eff6ff" color="#1d4ed8" onClick={() => setDetailsOpen(true)}>
+      <div className="flex items-center px-4 py-3 gap-2">
+        <IconBtn label="детали" className="bg-blue-50 text-blue-700 hover:bg-blue-100" onClick={() => setDetailsOpen(true)}>
           <InfoOutlined sx={{ fontSize: 20 }} />
         </IconBtn>
 
         {isRezerv && (
           <>
-            <IconBtn label="изменить" bg="#fefce8" color="#a16207" onClick={() => setConfirm('edit')}>
+            <IconBtn label="изменить" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100" onClick={() => setConfirm('edit')}>
               <EditOutlined sx={{ fontSize: 20 }} />
             </IconBtn>
-            <IconBtn label="удалить" bg="#fef2f2" color="#dc2626" onClick={() => setConfirm('delete')}>
+            <IconBtn label="удалить" className="bg-red-50 text-red-600 hover:bg-red-100" onClick={() => setConfirm('delete')}>
               <DeleteOutlined sx={{ fontSize: 20 }} />
             </IconBtn>
           </>
@@ -124,7 +123,7 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
         <div className="flex-1" />
 
         {isRezerv && (
-          <IconBtn label="закрыть" bg="#f0fdf4" color="#16a34a" size={52} onClick={() => onClose?.(order.id)}>
+          <IconBtn label="закрыть" className="bg-green-50 text-green-600 hover:bg-green-100" size={52} onClick={() => onClose?.(order.id)}>
             <CheckCircleOutlined sx={{ fontSize: 24 }} />
           </IconBtn>
         )}
