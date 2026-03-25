@@ -181,8 +181,7 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
           ) : (
             <li key={s.id} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
               <p className="text-[16px] font-bold text-gray-900 mb-0.5">{s.name}</p>
-              {s.phone && <p className="text-[13px] text-gray-400 mb-3">{s.phone}</p>}
-              {!s.phone && <div className="mb-3" />}
+              <p className="text-[13px] text-gray-400 mb-3">{s.phone || '\u00a0'}</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setDetailsSupplier(s)}

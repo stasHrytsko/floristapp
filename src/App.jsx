@@ -54,12 +54,11 @@ const PAGE_TITLES = {
   writeoff: 'Списание',
 }
 
-const TABS_WITH_ADD = ['stock', 'orders', 'delivery', 'writeoff']
+const TABS_WITH_ADD = ['orders', 'delivery', 'writeoff']
 
 export default function App() {
   const [tab, setTab] = useState('stock')
   const online = useOnlineStatus()
-  const [stockAddOpen, setStockAddOpen] = useState(false)
   const [deliveryAddOpen, setDeliveryAddOpen] = useState(false)
   const [writeoffAddOpen, setWriteoffAddOpen] = useState(false)
   const [newOrderPrefill, setNewOrderPrefill] = useState(null)
@@ -70,8 +69,7 @@ export default function App() {
   }
 
   function handleHeaderAdd() {
-    if (tab === 'stock') setStockAddOpen(true)
-    else if (tab === 'orders') setTab('neworder')
+    if (tab === 'orders') setTab('neworder')
     else if (tab === 'delivery') setDeliveryAddOpen(true)
     else if (tab === 'writeoff') setWriteoffAddOpen(true)
   }
@@ -100,9 +98,7 @@ export default function App() {
 
       <main className="px-4 py-4 flex-1">
         <ErrorBoundary>
-          {tab === 'stock' && (
-            <StockPage addModalOpen={stockAddOpen} onAddClose={() => setStockAddOpen(false)} />
-          )}
+          {tab === 'stock' && <StockPage />}
           {tab === 'neworder' && (
             <NewOrderPage
               initialClientName={newOrderPrefill?.clientName || ''}
