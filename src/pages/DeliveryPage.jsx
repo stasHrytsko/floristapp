@@ -218,7 +218,7 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
       if (subTab === 'suppliers') setSupplierAddOpen(true)
       else setShowForm(true)
     }
-  }, [addFormOpen])
+  }, [addFormOpen, subTab])
 
   function handleFormClose() {
     setShowForm(false)
@@ -227,10 +227,11 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
 
   async function handleAdd({ supplierId, deliveredAt, items }) {
     await saveDelivery({ supplierId, deliveredAt, items })
-    setSuccess(true)
     setShowForm(false)
     onAddFormClose?.()
     refresh()
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 3000)
   }
 
   async function handleUpdate({ supplierId, deliveredAt, items }) {
