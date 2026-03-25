@@ -23,12 +23,13 @@ const mockOrders = [
     client_name: 'Анна',
     client_phone: '+7 999 111 22 33',
     delivery_type: 'самовывоз',
-    status: 'активный',
-    ready_at: '2026-03-20',
     delivery_address: null,
+    status: 'резерв',
+    ready_at: '2026-03-20',
+    comment: null,
     order_items: [
-      { quantity: 5, flowers: { name: 'Роза' } },
-      { quantity: 3, flowers: { name: 'Тюльпан' } },
+      { id: 'oi1', quantity: 5, flower_id: 'f1', flowers: { name: 'Роза' } },
+      { id: 'oi2', quantity: 3, flower_id: 'f2', flowers: { name: 'Тюльпан' } },
     ],
   },
   {
@@ -36,9 +37,10 @@ const mockOrders = [
     client_name: 'Мария',
     client_phone: null,
     delivery_type: 'доставка',
-    status: 'активный',
-    ready_at: '2026-03-21',
     delivery_address: 'ул. Ленина, 5',
+    status: 'резерв',
+    ready_at: '2026-03-21',
+    comment: null,
     order_items: [],
   },
 ]
@@ -66,7 +68,15 @@ describe('OrdersPage', () => {
   })
 
   function defaultOrdersMock(overrides = {}) {
-    return { orders: [], loading: false, error: null, refresh: vi.fn(), changeStatus: vi.fn(), deleteOrder: vi.fn(), ...overrides }
+    return {
+      orders: [],
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+      closeOrder: vi.fn(),
+      deleteOrder: vi.fn(),
+      ...overrides,
+    }
   }
 
   it('показывает загрузку', () => {
@@ -102,6 +112,15 @@ describe('OrdersPage', () => {
     expect(screen.getByText('Клиенты')).toBeDefined()
   })
 
+  it('активный таб отличается от неактивного стилем', () => {
+    useOrders.mockReturnValue(defaultOrdersMock())
+    render(<OrdersPage />)
+    const orderTab = screen.getByRole('button', { name: 'Заказы' })
+    const clientTab = screen.getByRole('button', { name: 'Клиенты' })
+    expect(orderTab.className).toContain('bg-white')
+    expect(clientTab.className).not.toContain('bg-white')
+  })
+
   it('переключается в режим клиентов и показывает список', () => {
     useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
@@ -111,13 +130,13 @@ describe('OrdersPage', () => {
     expect(screen.getByText('Мария')).toBeDefined()
   })
 
-  it('в разделе клиентов есть кнопки Изменить и История', () => {
+  it('в разделе клиентов есть кнопки изменить и история', () => {
     useOrders.mockReturnValue(defaultOrdersMock())
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
-    expect(screen.getAllByText('Изменить').length).toBe(2)
-    expect(screen.getAllByText('История').length).toBe(2)
+    expect(screen.getAllByRole('button', { name: 'изменить' }).length).toBe(2)
+    expect(screen.getAllByRole('button', { name: 'история' }).length).toBe(2)
   })
 
   it('открывает форму редактирования клиента', () => {
@@ -125,7 +144,7 @@ describe('OrdersPage', () => {
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
-    fireEvent.click(screen.getAllByText('Изменить')[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'изменить' })[0])
     expect(screen.getByDisplayValue('Анна')).toBeDefined()
   })
 
@@ -137,7 +156,7 @@ describe('OrdersPage', () => {
         {
           id: 'o1',
           ready_at: '2026-03-20',
-          status: 'выдан',
+          status: 'продано',
           delivery_type: 'самовывоз',
           order_items: [{ quantity: 5, flowers: { name: 'Роза' } }],
         },
@@ -146,7 +165,7 @@ describe('OrdersPage', () => {
     })
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
-    fireEvent.click(screen.getAllByText('История')[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'история' })[0])
     expect(screen.getByText(/История: Анна/)).toBeDefined()
     expect(screen.getByText('Роза × 5 шт')).toBeDefined()
   })
@@ -156,87 +175,77 @@ describe('OrdersPage', () => {
     useClients.mockReturnValue(defaultClientsMock({ clients: mockClients }))
     render(<OrdersPage />)
     fireEvent.click(screen.getByText('Клиенты'))
-    fireEvent.click(screen.getAllByText('История')[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'история' })[0])
     fireEvent.click(screen.getByText('✕'))
     expect(screen.queryByText(/История:/)).toBeNull()
+  })
+
+  it('кнопка Создать заказ вызывает onCreateNew', () => {
+    useOrders.mockReturnValue(defaultOrdersMock())
+    const onCreateNew = vi.fn()
+    render(<OrdersPage onCreateNew={onCreateNew} />)
+    fireEvent.click(screen.getByText('Создать заказ'))
+    expect(onCreateNew).toHaveBeenCalled()
   })
 })
 
 describe('OrderCard', () => {
-  it('показывает имя клиента и статус активный', () => {
+  it('показывает имя клиента и бейдж резерв', () => {
     render(<OrderCard order={mockOrders[0]} />)
     expect(screen.getByText('Анна')).toBeDefined()
-    expect(screen.getByText('активный')).toBeDefined()
+    expect(screen.getByText('резерв')).toBeDefined()
   })
 
-  it('показывает состав заказа', () => {
-    render(<OrderCard order={mockOrders[0]} />)
-    expect(screen.getByText(/Роза × 5/)).toBeDefined()
-    expect(screen.getByText(/Тюльпан × 3/)).toBeDefined()
+  it('заказ в статусе резерв показывает 4 иконки: детали, изменить, удалить, закрыть', () => {
+    render(<OrderCard order={mockOrders[0]} onClose={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'детали' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'изменить' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'удалить' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'закрыть' })).toBeDefined()
   })
 
-  it('показывает тип получения — самовывоз', () => {
-    render(<OrderCard order={mockOrders[0]} />)
-    expect(screen.getByText(/самовывоз/i)).toBeDefined()
+  it('заказ в статусе продано показывает только иконку детали', () => {
+    const soldOrder = { ...mockOrders[0], status: 'продано' }
+    render(<OrderCard order={soldOrder} />)
+    expect(screen.getByRole('button', { name: 'детали' })).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'изменить' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'удалить' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'закрыть' })).toBeNull()
   })
 
-  it('показывает тип получения — доставка с адресом', () => {
-    render(<OrderCard order={mockOrders[1]} />)
-    expect(screen.getByText(/доставка/i)).toBeDefined()
-    expect(screen.getByText('ул. Ленина, 5')).toBeDefined()
+  it('клик закрыть вызывает onClose с id заказа', () => {
+    const onClose = vi.fn()
+    render(<OrderCard order={mockOrders[0]} onClose={onClose} onEdit={vi.fn()} onDelete={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'закрыть' }))
+    expect(onClose).toHaveBeenCalledWith('1')
   })
 
-  it('не показывает телефон если его нет', () => {
-    render(<OrderCard order={mockOrders[1]} />)
-    expect(screen.queryByText(/\+7/)).toBeNull()
-  })
-
-  it('показывает кнопку → выполнен для активного заказа с onStatusChange', () => {
-    render(<OrderCard order={mockOrders[0]} onStatusChange={vi.fn()} />)
-    expect(screen.getByText(/→ выполнен/)).toBeDefined()
-  })
-
-  it('не показывает кнопку → выполнен без onStatusChange', () => {
-    render(<OrderCard order={mockOrders[0]} />)
-    expect(screen.queryByText(/→/)).toBeNull()
-  })
-
-  it('вызывает onStatusChange с id заказа при клике', () => {
-    const onStatusChange = vi.fn()
-    render(<OrderCard order={mockOrders[0]} onStatusChange={onStatusChange} />)
-    fireEvent.click(screen.getByText(/→ выполнен/))
-    expect(onStatusChange).toHaveBeenCalledWith('1')
-  })
-
-  it('показывает кнопку «Пересоздать заказ» когда передан onRecreate', () => {
-    render(<OrderCard order={mockOrders[0]} onRecreate={vi.fn()} />)
-    expect(screen.getByText(/пересоздать заказ/i)).toBeDefined()
-  })
-
-  it('не показывает кнопку «Пересоздать заказ» без onRecreate', () => {
-    render(<OrderCard order={mockOrders[0]} />)
-    expect(screen.queryByText(/пересоздать заказ/i)).toBeNull()
-  })
-
-  it('показывает диалог подтверждения при клике «Пересоздать заказ»', () => {
-    render(<OrderCard order={mockOrders[0]} onRecreate={vi.fn()} />)
-    fireEvent.click(screen.getByText(/пересоздать заказ/i))
+  it('клик удалить показывает диалог подтверждения', () => {
+    render(<OrderCard order={mockOrders[0]} onDelete={vi.fn()} onEdit={vi.fn()} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'удалить' }))
     expect(screen.getByText(/удалить заказ/i)).toBeDefined()
   })
 
-  it('вызывает onRecreate после подтверждения', () => {
-    const onRecreate = vi.fn()
-    render(<OrderCard order={mockOrders[0]} onRecreate={onRecreate} />)
-    fireEvent.click(screen.getByText(/пересоздать заказ/i))
-    fireEvent.click(screen.getByRole('button', { name: /^да$/i }))
-    expect(onRecreate).toHaveBeenCalled()
+  it('клик изменить показывает диалог подтверждения', () => {
+    render(<OrderCard order={mockOrders[0]} onEdit={vi.fn()} onDelete={vi.fn()} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'изменить' }))
+    expect(screen.getByText(/изменить заказ/i)).toBeDefined()
   })
 
-  it('не вызывает onRecreate при отмене', () => {
-    const onRecreate = vi.fn()
-    render(<OrderCard order={mockOrders[0]} onRecreate={onRecreate} />)
-    fireEvent.click(screen.getByText(/пересоздать заказ/i))
-    fireEvent.click(screen.getByRole('button', { name: /отмена/i }))
-    expect(onRecreate).not.toHaveBeenCalled()
+  it('попап деталей показывает клиент, телефон, тип и состав', () => {
+    render(<OrderCard order={mockOrders[0]} onClose={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'детали' }))
+    expect(screen.getByText('+7 999 111 22 33')).toBeDefined()
+    expect(screen.getByText(/самовывоз/i)).toBeDefined()
+    expect(screen.getByText(/Роза × 5 шт/)).toBeDefined()
+    expect(screen.getByText(/Тюльпан × 3 шт/)).toBeDefined()
+  })
+
+  it('попап деталей закрывается по кнопке ✕', () => {
+    render(<OrderCard order={mockOrders[0]} onClose={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'детали' }))
+    expect(screen.getByText('+7 999 111 22 33')).toBeDefined()
+    fireEvent.click(screen.getByText('✕'))
+    expect(screen.queryByText('+7 999 111 22 33')).toBeNull()
   })
 })
