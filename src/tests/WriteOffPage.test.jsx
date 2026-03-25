@@ -110,10 +110,9 @@ describe('WriteOffPage', () => {
     fireEvent.click(screen.getByText(/\+ Списать/))
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'f1' } })
     fireEvent.change(screen.getByPlaceholderText('шт'), { target: { value: '5' } })
-    fireEvent.change(screen.getByPlaceholderText('Необязательно'), { target: { value: 'вянут' } })
     fireEvent.click(screen.getByRole('button', { name: /сохранить/i }))
     await waitFor(() =>
-      expect(createWriteOff).toHaveBeenCalledWith(expect.objectContaining({ flowerId: 'f1', quantity: 5 }))
+      expect(createWriteOff).toHaveBeenCalledWith({ flowerId: 'f1', quantity: 5 })
     )
   })
 
