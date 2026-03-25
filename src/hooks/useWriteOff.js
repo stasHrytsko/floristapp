@@ -9,7 +9,6 @@ export function useWriteOff() {
         quantity,
         defect_type: 'списание',
         resolution: 'списание',
-        comment: comment || null,
       })
       .select('id')
       .single()

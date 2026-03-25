@@ -12,7 +12,7 @@ export function useWriteOffs() {
     try {
       const { data, error: err } = await supabase
         .from('defects')
-        .select('id, quantity, comment, created_at, flowers ( id, name )')
+        .select('id, quantity, created_at, flowers ( id, name )')
         .eq('resolution', 'списание')
         .is('batch_id', null)
         .order('created_at', { ascending: false })

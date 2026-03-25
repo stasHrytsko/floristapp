@@ -74,12 +74,6 @@ describe('WriteOffPage', () => {
     expect(screen.getByText(/Тюльпан — 3 шт/)).toBeDefined()
   })
 
-  it('показывает комментарий в кавычках', () => {
-    setup()
-    render(<WriteOffPage />)
-    expect(screen.getByText(/«начали вянуть»/)).toBeDefined()
-  })
-
   it('показывает сообщение при пустой истории', () => {
     useWriteOffs.mockReturnValue({ writeOffs: [], loading: false, error: null, refresh: vi.fn() })
     useWriteOff.mockReturnValue({ createWriteOff: vi.fn() })

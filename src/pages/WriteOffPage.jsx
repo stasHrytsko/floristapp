@@ -154,9 +154,6 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
               <p key={w.id} className="text-sm text-gray-700">
                 <span className="text-gray-400">•</span>{' '}
                 {w.flowers?.name} — {w.quantity} шт
-                {w.comment && (
-                  <span className="text-gray-400 ml-1">«{w.comment}»</span>
-                )}
               </p>
             ))}
           </div>
