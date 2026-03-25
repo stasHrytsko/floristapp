@@ -1,8 +1,4 @@
 import { useState } from 'react'
-import InfoOutlined from '@mui/icons-material/InfoOutlined'
-import EditOutlined from '@mui/icons-material/EditOutlined'
-import DeleteOutlined from '@mui/icons-material/DeleteOutlined'
-import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined'
 import ConfirmDialog from './ConfirmDialog'
 
 const STATUS_BADGE = {
@@ -16,18 +12,7 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function IconBtn({ label, className = "", size = 44, children, onClick }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      style={{ width: size, height: size, flexShrink: 0 }}
-      className={`rounded-xl transition-colors flex items-center justify-center ${className}`}
-    >
-      {children}
-    </button>
-  )
-}
+
 
 function DetailsSheet({ order, onClose }) {
   const { client_name, client_phone, delivery_type, delivery_address, ready_at, status, comment, order_items = [] } = order
@@ -104,28 +89,35 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
 
       <div className="border-t border-gray-100" />
 
-      <div className="flex items-center px-4 py-3 gap-2">
-        <IconBtn label="детали" className="bg-blue-50 text-blue-700 hover:bg-blue-100" onClick={() => setDetailsOpen(true)}>
-          <InfoOutlined sx={{ fontSize: 20 }} />
-        </IconBtn>
+      <div className="grid grid-cols-2 gap-2 px-4 py-3">
+        <button
+          onClick={() => setDetailsOpen(true)}
+          className="bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm py-2.5 rounded-xl font-medium"
+        >
+          Детали
+        </button>
 
         {isRezerv && (
           <>
-            <IconBtn label="изменить" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100" onClick={() => setConfirm('edit')}>
-              <EditOutlined sx={{ fontSize: 20 }} />
-            </IconBtn>
-            <IconBtn label="удалить" className="bg-red-50 text-red-600 hover:bg-red-100" onClick={() => setConfirm('delete')}>
-              <DeleteOutlined sx={{ fontSize: 20 }} />
-            </IconBtn>
+            <button
+              onClick={() => setConfirm('edit')}
+              className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 text-sm py-2.5 rounded-xl font-medium"
+            >
+              Изменить
+            </button>
+            <button
+              onClick={() => setConfirm('delete')}
+              className="bg-red-50 text-red-600 hover:bg-red-100 text-sm py-2.5 rounded-xl font-medium"
+            >
+              Удалить
+            </button>
+            <button
+              onClick={() => onClose?.(order.id)}
+              className="bg-green-50 text-green-600 hover:bg-green-100 text-sm py-2.5 rounded-xl font-medium"
+            >
+              Закрыть
+            </button>
           </>
-        )}
-
-        <div className="flex-1" />
-
-        {isRezerv && (
-          <IconBtn label="закрыть" className="bg-green-50 text-green-600 hover:bg-green-100" size={52} onClick={() => onClose?.(order.id)}>
-            <CheckCircleOutlined sx={{ fontSize: 24 }} />
-          </IconBtn>
         )}
       </div>
 

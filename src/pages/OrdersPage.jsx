@@ -1,23 +1,9 @@
 import { useState } from 'react'
-import EditOutlined from '@mui/icons-material/EditOutlined'
-import HistoryOutlined from '@mui/icons-material/HistoryOutlined'
 import OrderCard from '../components/OrderCard'
 import { useOrders } from '../hooks/useOrders'
 import { useClients } from '../hooks/useClients'
 import { useClientOrders } from '../hooks/useClientOrders'
 
-function IconBtn({ label, className = "", children, onClick }) {
-  return (
-    <button
-      aria-label={label}
-      onClick={onClick}
-      style={{ width: 44, height: 44, flexShrink: 0 }}
-      className={`rounded-xl transition-colors flex items-center justify-center ${className}`}
-    >
-      {children}
-    </button>
-  )
-}
 
 function ClientHistorySheet({ client, onClose }) {
   const { orders, loading } = useClientOrders(client.name)
@@ -147,20 +133,18 @@ function ClientsTab() {
                 />
               ) : (
                 <div className="flex gap-2">
-                  <IconBtn
-                    label="изменить"
-                    className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                  <button
                     onClick={() => setEditingId(c.id || c.name)}
+                    className="flex-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 py-2.5 rounded-xl text-sm font-medium"
                   >
-                    <EditOutlined sx={{ fontSize: 20 }} />
-                  </IconBtn>
-                  <IconBtn
-                    label="история"
-                    className="bg-purple-50 text-purple-600 hover:bg-purple-100"
+                    Изменить
+                  </button>
+                  <button
                     onClick={() => setHistoryClient(c)}
+                    className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 py-2.5 rounded-xl text-sm font-medium"
                   >
-                    <HistoryOutlined sx={{ fontSize: 20 }} />
-                  </IconBtn>
+                    История
+                  </button>
                 </div>
               )}
             </li>
