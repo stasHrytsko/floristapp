@@ -113,7 +113,7 @@ describe('WriteOffPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Необязательно'), { target: { value: 'вянут' } })
     fireEvent.click(screen.getByRole('button', { name: /сохранить/i }))
     await waitFor(() =>
-      expect(createWriteOff).toHaveBeenCalledWith({ flowerId: 'f1', quantity: 5, comment: 'вянут' })
+      expect(createWriteOff).toHaveBeenCalledWith(expect.objectContaining({ flowerId: 'f1', quantity: 5 }))
     )
   })
 

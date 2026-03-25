@@ -11,9 +11,10 @@ export function useWriteOffs() {
     setError(null)
     try {
       const { data, error: err } = await supabase
-        .from('defects')
+        .from('movements')
         .select('id, quantity, created_at, flowers ( id, name )')
-        .eq('resolution', 'списание')
+        .eq('movement_type', 'списание')
+        .is('defect_id', null)
         .is('batch_id', null)
         .order('created_at', { ascending: false })
       if (err) throw err
