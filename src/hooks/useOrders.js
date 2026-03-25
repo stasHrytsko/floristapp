@@ -20,12 +20,15 @@ export function useOrders() {
           delivery_address,
           status,
           ready_at,
+          comment,
           order_items (
+            id,
             quantity,
+            flower_id,
             flowers ( name )
           )
         `)
-        .not('status', 'eq', 'выполнен')
+        .in('status', ['резерв', 'продано'])
         .order('ready_at', { ascending: true })
 
       if (err) throw err
@@ -41,13 +44,25 @@ export function useOrders() {
     fetchData()
   }, [])
 
-  async function changeStatus(id) {
+  async function closeOrder(id) {
+    const order = orders.find((o) => o.id === id)
     const { error: err } = await supabase
       .from('orders')
-      .update({ status: 'выполнен' })
+      .update({ status: 'продано' })
       .eq('id', id)
-    if (err) throw new Error('Не удалось обновить статус')
-    setOrders((prev) => prev.filter((o) => o.id !== id))
+    if (err) throw new Error('Не удалось закрыть заказ')
+
+    for (const item of order?.order_items || []) {
+      const { error: movErr } = await supabase.from('movements').insert({
+        movement_type: 'выдача',
+        flower_id: item.flower_id,
+        order_id: id,
+        quantity: item.quantity,
+      })
+      if (movErr) throw movErr
+    }
+
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: 'продано' } : o)))
   }
 
   async function deleteOrder(id) {
@@ -56,5 +71,5 @@ export function useOrders() {
     setOrders((prev) => prev.filter((o) => o.id !== id))
   }
 
-  return { orders, loading, error, refresh: fetchData, changeStatus, deleteOrder }
+  return { orders, loading, error, refresh: fetchData, closeOrder, deleteOrder }
 }

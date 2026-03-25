@@ -54,7 +54,7 @@ const PAGE_TITLES = {
   writeoff: 'Списание',
 }
 
-const TABS_WITH_ADD = ['orders', 'delivery', 'writeoff']
+const TABS_WITH_ADD = ['delivery', 'writeoff']
 
 export default function App() {
   const [tab, setTab] = useState('stock')
@@ -69,8 +69,7 @@ export default function App() {
   }
 
   function handleHeaderAdd() {
-    if (tab === 'orders') setTab('neworder')
-    else if (tab === 'delivery') setDeliveryAddOpen(true)
+    if (tab === 'delivery') setDeliveryAddOpen(true)
     else if (tab === 'writeoff') setWriteoffAddOpen(true)
   }
 
@@ -106,7 +105,12 @@ export default function App() {
               onBack={() => { setNewOrderPrefill(null); setTab('orders') }}
             />
           )}
-          {tab === 'orders' && <OrdersPage onRecreate={handleRecreateOrder} />}
+          {tab === 'orders' && (
+            <OrdersPage
+              onRecreate={handleRecreateOrder}
+              onCreateNew={() => setTab('neworder')}
+            />
+          )}
           {tab === 'delivery' && (
             <DeliveryPage
               addFormOpen={deliveryAddOpen}

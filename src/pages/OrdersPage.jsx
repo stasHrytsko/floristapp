@@ -1,8 +1,23 @@
 import { useState } from 'react'
+import EditOutlined from '@mui/icons-material/EditOutlined'
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined'
 import OrderCard from '../components/OrderCard'
 import { useOrders } from '../hooks/useOrders'
 import { useClients } from '../hooks/useClients'
 import { useClientOrders } from '../hooks/useClientOrders'
+
+function IconBtn({ label, bg, color, children, onClick }) {
+  return (
+    <button
+      aria-label={label}
+      onClick={onClick}
+      style={{ width: 44, height: 44, background: bg, color, borderRadius: 10, flexShrink: 0 }}
+      className="flex items-center justify-center"
+    >
+      {children}
+    </button>
+  )
+}
 
 function ClientHistorySheet({ client, onClose }) {
   const { orders, loading } = useClientOrders(client.name)
@@ -123,8 +138,7 @@ function ClientsTab() {
           {clients.map((c) => (
             <li key={c.id || c.name} className="bg-white rounded-2xl px-4 py-3 border border-gray-100">
               <p className="text-[16px] font-bold text-gray-900">{c.name}</p>
-              {c.phone && <p className="text-[13px] text-gray-400 mb-2">{c.phone}</p>}
-              {!c.phone && <div className="mb-2" />}
+              <p className="text-[13px] text-gray-400 mb-3">{c.phone || '\u00a0'}</p>
               {editingId === (c.id || c.name) ? (
                 <ClientEditForm
                   client={c}
@@ -133,18 +147,22 @@ function ClientsTab() {
                 />
               ) : (
                 <div className="flex gap-2">
-                  <button
+                  <IconBtn
+                    label="изменить"
+                    bg="#fefce8"
+                    color="#a16207"
                     onClick={() => setEditingId(c.id || c.name)}
-                    className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
                   >
-                    Изменить
-                  </button>
-                  <button
+                    <EditOutlined sx={{ fontSize: 20 }} />
+                  </IconBtn>
+                  <IconBtn
+                    label="история"
+                    bg="#f5f3ff"
+                    color="#7c3aed"
                     onClick={() => setHistoryClient(c)}
-                    className="flex-1 bg-gray-100 text-gray-700 text-sm py-2.5 rounded-xl font-medium"
                   >
-                    История
-                  </button>
+                    <HistoryOutlined sx={{ fontSize: 20 }} />
+                  </IconBtn>
                 </div>
               )}
             </li>
@@ -159,35 +177,44 @@ function ClientsTab() {
   )
 }
 
-export default function OrdersPage({ onRecreate }) {
-  const { orders, loading, error, refresh, changeStatus, deleteOrder } = useOrders()
+export default function OrdersPage({ onRecreate, onCreateNew }) {
+  const { orders, loading, error, refresh, closeOrder, deleteOrder } = useOrders()
   const [actionError, setActionError] = useState(null)
   const [mode, setMode] = useState('orders')
 
-  async function handleStatusChange(id) {
+  async function handleClose(id) {
     setActionError(null)
     try {
-      await changeStatus(id)
+      await closeOrder(id)
     } catch (err) {
-      setActionError(err.message || 'Не удалось обновить статус')
+      setActionError(err.message || 'Не удалось закрыть заказ')
     }
   }
 
-  async function handleRecreate(order) {
+  async function handleEdit(order) {
     setActionError(null)
     try {
       await deleteOrder(order.id)
     } catch {
       // продолжаем даже при ошибке удаления
     }
-    if (onRecreate) onRecreate(order.client_name, order.client_phone)
+    onRecreate?.(order.client_name, order.client_phone)
+  }
+
+  async function handleDelete(id) {
+    setActionError(null)
+    try {
+      await deleteOrder(id)
+    } catch (err) {
+      setActionError(err.message || 'Не удалось удалить заказ')
+    }
   }
 
   return (
     <div>
-      <div className="flex bg-gray-100 rounded-full p-0.5 gap-0.5 mb-4">
+      <div className="flex bg-gray-200 rounded-[10px] p-[3px] gap-[3px] mb-4">
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-[8px] transition-colors ${
             mode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => setMode('orders')}
@@ -195,7 +222,7 @@ export default function OrdersPage({ onRecreate }) {
           Заказы
         </button>
         <button
-          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+          className={`flex-1 py-2 text-sm font-medium rounded-[8px] transition-colors ${
             mode === 'clients' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
           }`}
           onClick={() => setMode('clients')}
@@ -208,6 +235,13 @@ export default function OrdersPage({ onRecreate }) {
 
       {mode === 'orders' && (
         <>
+          <button
+            onClick={onCreateNew}
+            className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-[10px] mb-4"
+          >
+            Создать заказ
+          </button>
+
           {loading && (
             <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
           )}
@@ -231,8 +265,9 @@ export default function OrdersPage({ onRecreate }) {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    onStatusChange={handleStatusChange}
-                    onRecreate={() => handleRecreate(order)}
+                    onClose={handleClose}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))
               )}
