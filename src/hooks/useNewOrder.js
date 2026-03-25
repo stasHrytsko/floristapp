@@ -37,7 +37,7 @@ export function useNewOrder() {
         delivery_type: deliveryType,
         delivery_address: deliveryType === 'доставка' ? address : null,
         ready_at: readyAt,
-        status: 'активный',
+        status: 'резерв',
         comment: comment?.trim() || null,
       })
       .select('id')
