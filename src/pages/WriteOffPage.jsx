@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useWriteOffs } from '../hooks/useWriteOffs'
 import { useWriteOff } from '../hooks/useWriteOff'
 import { useFlowerStock } from '../hooks/useFlowerStock'
@@ -22,7 +22,7 @@ function groupByDate(items) {
   return Object.entries(groups)
 }
 
-export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
+export default function WriteOffPage() {
   const [showForm, setShowForm] = useState(false)
   const [flowerId, setFlowerId] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -33,16 +33,11 @@ export default function WriteOffPage({ addFormOpen, onAddFormClose }) {
   const { createWriteOff } = useWriteOff()
   const { flowers } = useFlowerStock()
 
-  useEffect(() => {
-    if (addFormOpen) setShowForm(true)
-  }, [addFormOpen])
-
   function handleClose() {
     setShowForm(false)
     setFlowerId('')
     setQuantity('')
     setSaveError(null)
-    onAddFormClose?.()
   }
 
   async function handleSubmit(e) {

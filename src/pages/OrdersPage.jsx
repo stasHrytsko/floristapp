@@ -103,13 +103,19 @@ function ClientEditForm({ client, onSave, onCancel }) {
 }
 
 function ClientsTab() {
-  const { clients, loading, error, updateClient } = useClients()
+  const { clients, loading, error, addClient, updateClient } = useClients()
   const [editingId, setEditingId] = useState(null)
   const [historyClient, setHistoryClient] = useState(null)
+  const [creating, setCreating] = useState(false)
 
   async function handleSave(id, newName, newPhone) {
     await updateClient(id, newName, newPhone)
     setEditingId(null)
+  }
+
+  async function handleCreate(name, phone) {
+    await addClient(name, phone)
+    setCreating(false)
   }
 
   if (loading) return <p className="text-center text-gray-400 mt-10 text-sm">Загрузка...</p>
@@ -117,6 +123,23 @@ function ClientsTab() {
 
   return (
     <div>
+      {!creating && (
+        <button
+          onClick={() => setCreating(true)}
+          className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-xl mb-4"
+        >
+          Новый клиент
+        </button>
+      )}
+
+      {creating && (
+        <ClientEditForm
+          client={{ name: '', phone: '' }}
+          onSave={handleCreate}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
       {clients.length === 0 ? (
         <p className="text-center text-gray-400 mt-6 text-sm">Клиентов нет</p>
       ) : (
