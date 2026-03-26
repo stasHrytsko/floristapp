@@ -5,7 +5,7 @@ require('dotenv').config()
 const { Telegraf } = require('telegraf')
 const express = require('express')
 const delivery = require('./handlers/delivery')
-const defect = require('./handlers/defect')
+const writeoff = require('./handlers/writeoff')
 const order = require('./handlers/order')
 const stock = require('./handlers/stock')
 
@@ -31,7 +31,7 @@ bot.use((ctx, next) => {
 const MAIN_MENU = {
   reply_markup: {
     keyboard: [
-      ['📦 Поставка', '⚠️ Брак'],
+      ['📦 Поставка', '🗑 Списание'],
       ['📋 Заказы', '🌸 Остатки'],
     ],
     resize_keyboard: true,
@@ -49,7 +49,7 @@ bot.help((ctx) => {
 
 // Кнопки главного меню
 bot.hears('📦 Поставка', (ctx) => delivery.startDelivery(ctx))
-bot.hears('⚠️ Брак', (ctx) => defect.startDefect(ctx))
+bot.hears('🗑 Списание', (ctx) => writeoff.startWriteOff(ctx))
 
 bot.hears('📋 Заказы', (ctx) => order.startOrder(ctx))
 
@@ -58,8 +58,8 @@ bot.hears('🌸 Остатки', (ctx) => stock.startStock(ctx))
 // Callback-кнопки (inline keyboard) — роутинг по префиксу
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data
-  if (data.startsWith('ds_')) {
-    await defect.handleCallbackQuery(ctx)
+  if (data.startsWith('wo_')) {
+    await writeoff.handleCallbackQuery(ctx)
   } else if (data.startsWith('no_')) {
     await order.handleCallbackQuery(ctx)
   } else if (data.startsWith('st_')) {
@@ -72,7 +72,7 @@ bot.on('callback_query', async (ctx) => {
 // Текстовые сообщения — сначала пробуем активные диалоги, иначе подсказка
 bot.on('text', async (ctx) => {
   const handled =
-    (await defect.handleText(ctx)) ||
+    (await writeoff.handleText(ctx)) ||
     (await order.handleText(ctx)) ||
     (await stock.handleText(ctx)) ||
     (await delivery.handleText(ctx))

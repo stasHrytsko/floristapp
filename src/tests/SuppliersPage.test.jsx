@@ -57,16 +57,18 @@ describe('SuppliersPage', () => {
     expect(screen.getByText('ЦветТорг')).toBeDefined()
   })
 
-  it('показывает форму при addFormOpen=true', () => {
+  it('показывает форму после нажатия Новый поставщик', () => {
     useSuppliers.mockReturnValue(defaultMock())
-    render(<SuppliersPage addFormOpen={true} onAddFormClose={vi.fn()} />)
+    render(<SuppliersPage />)
+    fireEvent.click(screen.getByText('Новый поставщик'))
     expect(screen.getByPlaceholderText(/имя поставщика/i)).toBeDefined()
   })
 
   it('вызывает addSupplier при отправке формы', async () => {
     const addSupplier = vi.fn().mockResolvedValue(undefined)
     useSuppliers.mockReturnValue(defaultMock({ addSupplier }))
-    render(<SuppliersPage addFormOpen={true} onAddFormClose={vi.fn()} />)
+    render(<SuppliersPage />)
+    fireEvent.click(screen.getByText('Новый поставщик'))
     fireEvent.change(screen.getByPlaceholderText(/имя поставщика/i), {
       target: { value: 'Новый поставщик' },
     })

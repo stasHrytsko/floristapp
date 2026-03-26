@@ -58,102 +58,41 @@ async function getFlowersBySupplier(supplierId) {
     .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
 }
 
-async function saveDelivery({ supplierId, items, defectType, deliveredAt }) {
-  // Создаём запись поставки
+async function saveDelivery({ supplierId, items, deliveredAt }) {
   const { data: delivery, error: deliveryErr } = await supabase
     .from('deliveries')
-    .insert({
-      supplier_id: supplierId,
-      delivered_at: deliveredAt,
-      status: 'на складе',
-      has_issues: defectType !== 'нет',
-    })
+    .insert({ supplier_id: supplierId, delivered_at: deliveredAt })
     .select('id')
     .single()
   if (deliveryErr) throw deliveryErr
 
   for (const item of items) {
-    // Создаём партию
-    const notes = defectType !== 'нет' ? `Брак: ${defectType}` : null
     const { data: batch, error: batchErr } = await supabase
       .from('batches')
-      .insert({
-        supplier_id: supplierId,
-        flower_id: item.flowerId,
-        quantity: item.quantity,
-        delivered_at: deliveredAt,
-        notes,
-      })
+      .insert({ supplier_id: supplierId, flower_id: item.flowerId, quantity: item.quantity, delivered_at: deliveredAt })
       .select('id')
       .single()
     if (batchErr) throw batchErr
 
-    // Создаём позицию поставки
     const { error: itemErr } = await supabase
       .from('delivery_items')
-      .insert({
-        delivery_id: delivery.id,
-        flower_id: item.flowerId,
-        quantity: item.quantity,
-        batch_id: batch.id,
-        reception_status: defectType !== 'нет' ? 'брак' : 'ok',
-      })
+      .insert({ delivery_id: delivery.id, flower_id: item.flowerId, quantity: item.quantity, batch_id: batch.id })
     if (itemErr) throw itemErr
 
-    // Создаём движение (пополнение остатка)
     const { error: movErr } = await supabase
       .from('movements')
-      .insert({
-        flower_id: item.flowerId,
-        batch_id: batch.id,
-        movement_type: 'поставка',
-        quantity: item.quantity,
-      })
+      .insert({ flower_id: item.flowerId, batch_id: batch.id, movement_type: 'поставка', quantity: item.quantity })
     if (movErr) throw movErr
   }
 
   return delivery.id
 }
 
-async function saveDefect({ supplierId, flowerId, quantity, defectType }) {
-  // Ищем последнюю партию этого цветка от этого поставщика
-  const { data: batch, error: batchErr } = await supabase
-    .from('batches')
-    .select('id')
-    .eq('flower_id', flowerId)
-    .eq('supplier_id', supplierId)
-    .order('delivered_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (batchErr || !batch) {
-    throw new Error('Партия не найдена. Сначала зафиксируй поставку.')
-  }
-
-  const resolution = defectType === 'гнилой' ? 'возврат' : 'скидка'
-
-  const { data: defect, error: defectErr } = await supabase
-    .from('defects')
-    .insert({ batch_id: batch.id, flower_id: flowerId, quantity, defect_type: defectType, resolution })
-    .select('id')
-    .single()
-  if (defectErr) throw defectErr
-
-  // Гнилые → уменьшаем остаток (движение «списание»)
-  if (defectType === 'гнилой') {
-    const { error: movErr } = await supabase
-      .from('movements')
-      .insert({
-        flower_id: flowerId,
-        batch_id: batch.id,
-        defect_id: defect.id,
-        movement_type: 'списание',
-        quantity,
-      })
-    if (movErr) throw movErr
-  }
-
-  return defect.id
+async function saveWriteOff(flowerId, quantity) {
+  const { error } = await supabase
+    .from('movements')
+    .insert({ flower_id: flowerId, movement_type: 'списание', quantity })
+  if (error) throw error
 }
 
 async function getAllStock() {
@@ -199,8 +138,8 @@ async function getFlowerStockById(flowerId) {
 async function getActiveOrders(date) {
   let query = supabase
     .from('orders')
-    .select('id, client_name, ready_at, status, delivery_type')
-    .not('status', 'in', '("выдан","доставлен")')
+    .select('id, client_name, ready_at, status, delivery_type, order_items(flower_id, quantity)')
+    .in('status', ['резерв', 'продано'])
     .order('ready_at')
   if (date) query = query.eq('ready_at', date)
   const { data, error } = await query
@@ -208,9 +147,16 @@ async function getActiveOrders(date) {
   return data
 }
 
-async function updateOrderStatus(orderId, status) {
-  const { error } = await supabase.from('orders').update({ status }).eq('id', orderId)
-  if (error) throw error
+async function closeOrder(orderId, items) {
+  const { error: updErr } = await supabase.from('orders').update({ status: 'продано' }).eq('id', orderId)
+  if (updErr) throw updErr
+
+  for (const item of items) {
+    const { error: movErr } = await supabase
+      .from('movements')
+      .insert({ flower_id: item.flower_id, order_id: orderId, movement_type: 'выдача', quantity: item.quantity })
+    if (movErr) throw movErr
+  }
 }
 
 async function getFlowerStock() {
@@ -232,6 +178,7 @@ async function saveOrder({ clientName, clientPhone, deliveryType, address, ready
       delivery_type: deliveryType,
       delivery_address: address,
       ready_at: readyAt,
+      status: 'резерв',
     })
     .select('id')
     .single()
@@ -268,4 +215,4 @@ async function getActiveBatches() {
   return data
 }
 
-module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveOrders, updateOrderStatus, saveDelivery, saveDefect, saveOrder, getActiveBatches }
+module.exports = { getSuppliers, createSupplier, getFlowers, getFlowersBySupplier, getFlowerStock, getAllStock, getLowStock, searchFlowers, getFlowerStockById, getActiveOrders, closeOrder, saveDelivery, saveWriteOff, saveOrder, getActiveBatches }
