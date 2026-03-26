@@ -10,23 +10,12 @@ const order = require('./handlers/order')
 const stock = require('./handlers/stock')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
-const ALLOWED_ID = Number(process.env.ALLOWED_TELEGRAM_ID)
 const WEBHOOK_URL = process.env.WEBHOOK_URL
 const PORT = process.env.PORT || 3000
 
 if (!BOT_TOKEN) throw new Error('BOT_TOKEN не задан в .env')
-if (!ALLOWED_ID) throw new Error('ALLOWED_TELEGRAM_ID не задан в .env')
 
 const bot = new Telegraf(BOT_TOKEN)
-
-// Whitelist middleware — проверяет каждый входящий апдейт
-bot.use((ctx, next) => {
-  const userId = ctx.from?.id
-  if (userId !== ALLOWED_ID) {
-    return ctx.reply('Нет доступа.')
-  }
-  return next()
-})
 
 const MAIN_MENU = {
   reply_markup: {
