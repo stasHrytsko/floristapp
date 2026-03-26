@@ -91,6 +91,7 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
 
       <div className="grid grid-cols-2 gap-2 px-4 py-3">
         <button
+          aria-label="детали"
           onClick={() => setDetailsOpen(true)}
           className="bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm py-2.5 rounded-xl font-medium"
         >
@@ -100,18 +101,21 @@ export default function OrderCard({ order, onClose, onEdit, onDelete }) {
         {isRezerv && (
           <>
             <button
+              aria-label="изменить"
               onClick={() => setConfirm('edit')}
               className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 text-sm py-2.5 rounded-xl font-medium"
             >
               Изменить
             </button>
             <button
+              aria-label="удалить"
               onClick={() => setConfirm('delete')}
               className="bg-red-50 text-red-600 hover:bg-red-100 text-sm py-2.5 rounded-xl font-medium"
             >
               Удалить
             </button>
             <button
+              aria-label="закрыть"
               onClick={() => onClose?.(order.id)}
               className="bg-green-50 text-green-600 hover:bg-green-100 text-sm py-2.5 rounded-xl font-medium"
             >

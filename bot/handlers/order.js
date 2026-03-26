@@ -1,6 +1,6 @@
 'use strict'
 
-const { getFlowerStock, saveOrder, getActiveOrders, updateOrderStatus } = require('../lib/supabase')
+const { getFlowerStock, saveOrder, getActiveOrders, closeOrder } = require('../lib/supabase')
 const { createSessionStore } = require('../lib/sessionStore')
 
 const STEPS = {
@@ -26,19 +26,9 @@ function getISODate(offsetDays) {
   return d.toISOString().slice(0, 10)
 }
 
-// Самовывоз: новый → в работе → готов к выдаче → выдан
-// Доставка:  новый → в работе → готов к доставке → доставлен
-const STATUS_CHAIN = {
-  самовывоз: ['новый', 'в работе', 'готов к выдаче', 'выдан'],
-  доставка: ['новый', 'в работе', 'готов к доставке', 'доставлен'],
-}
-
-function getNextStatus(currentStatus, deliveryType) {
-  const chain = STATUS_CHAIN[deliveryType]
-  if (!chain) return null
-  const idx = chain.indexOf(currentStatus)
-  if (idx === -1 || idx === chain.length - 1) return null
-  return chain[idx + 1]
+function getNextStatus(currentStatus) {
+  if (currentStatus === 'резерв') return 'продано'
+  return null
 }
 
 // ISO дата ГГГГ-ММ-ДД → ДД.ММ.ГГГГ
@@ -252,7 +242,7 @@ async function handleCallbackQuery(ctx) {
       await ctx.answerCbQuery('Заказ не найден.')
       return true
     }
-    const nextStatus = getNextStatus(found.status, found.delivery_type)
+    const nextStatus = getNextStatus(found.status)
     if (!nextStatus) {
       await ctx.answerCbQuery('Это финальный статус.')
       return true
@@ -260,6 +250,7 @@ async function handleCallbackQuery(ctx) {
     session.step = STEPS.ORDER_STATUS
     session.selectedOrderId = orderId
     session.selectedClientName = found.client_name
+    session.selectedOrderItems = found.order_items || []
     session.nextStatus = nextStatus
     setSession(userId, session)
     await ctx.answerCbQuery()
@@ -282,7 +273,7 @@ async function handleCallbackQuery(ctx) {
   if (data === 'no_nst' && session.step === STEPS.ORDER_STATUS) {
     await ctx.answerCbQuery()
     try {
-      await updateOrderStatus(session.selectedOrderId, session.nextStatus)
+      await closeOrder(session.selectedOrderId, session.selectedOrderItems)
     } catch {
       await ctx.reply('Ошибка обновления статуса. Попробуй ещё раз.')
       return true
@@ -493,9 +484,4 @@ module.exports = {
   startOrder,
   handleCallbackQuery,
   handleText,
-  formatSummary,
-  parseDate,
-  getNextStatus,
-  formatReadyAt,
-  getISODate,
 }

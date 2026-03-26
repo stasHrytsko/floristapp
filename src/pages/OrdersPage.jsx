@@ -157,12 +157,14 @@ function ClientsTab() {
               ) : (
                 <div className="flex gap-2">
                   <button
+                    aria-label="изменить"
                     onClick={() => setEditingId(c.id || c.name)}
                     className="flex-1 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 py-2.5 rounded-xl text-sm font-medium"
                   >
                     Изменить
                   </button>
                   <button
+                    aria-label="история"
                     onClick={() => setHistoryClient(c)}
                     className="flex-1 bg-purple-50 text-purple-600 hover:bg-purple-100 py-2.5 rounded-xl text-sm font-medium"
                   >

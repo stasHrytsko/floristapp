@@ -11,7 +11,6 @@ const STEPS = {
   FLOWER_SELECT: 'FLOWER_SELECT',
   QUANTITY_INPUT: 'QUANTITY_INPUT',
   MORE_FLOWERS: 'MORE_FLOWERS',
-  DEFECT_SELECT: 'DEFECT_SELECT',
   CONFIRM: 'CONFIRM',
 }
 
@@ -21,8 +20,7 @@ function formatSummary(session) {
   const itemLines = session.items
     .map((i) => `• ${i.flowerName} — ${i.quantity} шт.`)
     .join('\n')
-  const defect = session.defectType !== 'нет' ? `\n⚠️ Брак: ${session.defectType}` : ''
-  return `📦 *Итог поставки*\n\nПоставщик: ${session.supplierName}\n\n${itemLines}${defect}`
+  return `📦 *Итог поставки*\n\nПоставщик: ${session.supplierName}\n\n${itemLines}`
 }
 
 async function startDelivery(ctx) {
@@ -43,7 +41,6 @@ async function startDelivery(ctx) {
     items: [],
     currentFlowerId: null,
     currentFlowerName: null,
-    defectType: 'нет',
     suppliers,
   })
 
@@ -154,44 +151,23 @@ async function handleCallbackQuery(ctx) {
     }
 
     if (data === 'more:no') {
-      session.step = STEPS.DEFECT_SELECT
+      session.step = STEPS.CONFIRM
       setSession(userId, session)
 
       await ctx.answerCbQuery()
-      await ctx.editMessageText('Есть брак?', {
+      await ctx.editMessageText(formatSummary(session), {
+        parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
             [
-              { text: 'Нет', callback_data: 'defect:нет' },
-              { text: 'Гнилые', callback_data: 'defect:гнилые' },
-              { text: 'Не тот цвет', callback_data: 'defect:не тот цвет' },
+              { text: '✅ Подтвердить', callback_data: 'confirm:yes' },
+              { text: '❌ Отменить', callback_data: 'delivery:cancel' },
             ],
-            [{ text: '❌ Отмена', callback_data: 'delivery:cancel' }],
           ],
         },
       })
       return
     }
-  }
-
-  if (session.step === STEPS.DEFECT_SELECT && data.startsWith('defect:')) {
-    session.defectType = data.replace('defect:', '')
-    session.step = STEPS.CONFIRM
-    setSession(userId, session)
-
-    await ctx.answerCbQuery()
-    await ctx.editMessageText(formatSummary(session), {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '✅ Подтвердить', callback_data: 'confirm:yes' },
-            { text: '❌ Отменить', callback_data: 'delivery:cancel' },
-          ],
-        ],
-      },
-    })
-    return
   }
 
   if (session.step === STEPS.CONFIRM && data === 'confirm:yes') {
@@ -202,7 +178,6 @@ async function handleCallbackQuery(ctx) {
       await saveDelivery({
         supplierId: session.supplierId,
         items: session.items,
-        defectType: session.defectType,
         deliveredAt: new Date().toISOString().slice(0, 10),
       })
     } catch (err) {

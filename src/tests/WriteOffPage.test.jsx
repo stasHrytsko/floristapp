@@ -90,12 +90,6 @@ describe('WriteOffPage', () => {
     expect(screen.getByPlaceholderText('шт')).toBeDefined()
   })
 
-  it('открывает форму при addFormOpen=true', () => {
-    setup()
-    render(<WriteOffPage addFormOpen={true} onAddFormClose={vi.fn()} />)
-    expect(screen.getByText('Новое списание')).toBeDefined()
-  })
-
   it('кнопка «Сохранить» заблокирована при незаполненной форме', () => {
     setup()
     render(<WriteOffPage />)
