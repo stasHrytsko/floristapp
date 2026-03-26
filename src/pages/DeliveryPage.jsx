@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useFlowerStock } from '../hooks/useFlowerStock'
 import { useDelivery } from '../hooks/useDelivery'
@@ -193,12 +193,11 @@ function DeliveryForm({ title, initial, suppliers, flowers, addFlower, refreshFl
   )
 }
 
-export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
+export default function DeliveryPage() {
   const [subTab, setSubTab] = useState('deliveries')
   const [showForm, setShowForm] = useState(false)
   const [editingDelivery, setEditingDelivery] = useState(null)
   const [success, setSuccess] = useState(false)
-  const [supplierAddOpen, setSupplierAddOpen] = useState(false)
 
   const { suppliers, loading: suppLoading } = useSuppliers()
   const { flowers, loading: flowLoading, refresh: refreshFlowers } = useFlowerStock()
@@ -213,22 +212,13 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
     updateDelivery,
   } = useDeliveries()
 
-  useEffect(() => {
-    if (addFormOpen) {
-      if (subTab === 'suppliers') setSupplierAddOpen(true)
-      else setShowForm(true)
-    }
-  }, [addFormOpen, subTab])
-
   function handleFormClose() {
     setShowForm(false)
-    onAddFormClose?.()
   }
 
   async function handleAdd({ supplierId, deliveredAt, items }) {
     await saveDelivery({ supplierId, deliveredAt, items })
     setShowForm(false)
-    onAddFormClose?.()
     refresh()
     setSuccess(true)
     setTimeout(() => setSuccess(false), 3000)
@@ -270,18 +260,19 @@ export default function DeliveryPage({ addFormOpen, onAddFormClose }) {
         </button>
       </div>
 
-      {subTab === 'suppliers' && (
-        <SuppliersPage
-          addFormOpen={supplierAddOpen}
-          onAddFormClose={() => {
-            setSupplierAddOpen(false)
-            onAddFormClose?.()
-          }}
-        />
-      )}
+      {subTab === 'suppliers' && <SuppliersPage />}
 
       {subTab === 'deliveries' && (
         <>
+          {!showForm && !editingDelivery && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-xl"
+            >
+              Новая поставка
+            </button>
+          )}
+
           {showForm && (
             <DeliveryForm
               title="Новая поставка"

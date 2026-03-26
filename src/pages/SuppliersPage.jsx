@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSuppliers } from '../hooks/useSuppliers'
 import { useSupplierDeliveries } from '../hooks/useSupplierDeliveries'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -108,7 +108,7 @@ function SupplierDeliveriesSheet({ supplier, onClose }) {
   )
 }
 
-export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
+export default function SuppliersPage() {
   const { suppliers, loading, error, addSupplier, updateSupplier, deleteSupplier } = useSuppliers()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -116,19 +116,13 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [detailsSupplier, setDetailsSupplier] = useState(null)
 
-  useEffect(() => {
-    if (addFormOpen) setShowAddForm(true)
-  }, [addFormOpen])
-
   function handleFormClose() {
     setShowAddForm(false)
-    onAddFormClose?.()
   }
 
   async function handleAdd(name, phone) {
     await addSupplier(name, phone)
     setShowAddForm(false)
-    onAddFormClose?.()
   }
 
   async function handleUpdate(name, phone) {
@@ -156,6 +150,15 @@ export default function SuppliersPage({ addFormOpen, onAddFormClose }) {
 
   return (
     <div>
+      {!showAddForm && (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="w-full bg-green-600 text-white text-sm font-medium py-3 rounded-xl mb-4"
+        >
+          Новый поставщик
+        </button>
+      )}
+
       {showAddForm && (
         <SupplierForm onSave={handleAdd} onCancel={handleFormClose} />
       )}

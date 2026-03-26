@@ -27,13 +27,9 @@ const PAGE_TITLES = {
   writeoff: 'Списание',
 }
 
-const TABS_WITH_ADD = ['delivery', 'writeoff']
-
 export default function App() {
   const [tab, setTab] = useState('stock')
   const online = useOnlineStatus()
-  const [deliveryAddOpen, setDeliveryAddOpen] = useState(false)
-  const [writeoffAddOpen, setWriteoffAddOpen] = useState(false)
   const [newOrderPrefill, setNewOrderPrefill] = useState(null)
 
   function handleRecreateOrder(clientName, clientPhone) {
@@ -41,25 +37,10 @@ export default function App() {
     setTab('neworder')
   }
 
-  function handleHeaderAdd() {
-    if (tab === 'delivery') setDeliveryAddOpen(true)
-    else if (tab === 'writeoff') setWriteoffAddOpen(true)
-  }
-
-  const showAddBtn = TABS_WITH_ADD.includes(tab)
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-10 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-10 shadow-sm">
         <h1 className="text-xl font-medium text-gray-900 leading-tight">{PAGE_TITLES[tab]}</h1>
-        {showAddBtn && (
-          <button
-            onClick={handleHeaderAdd}
-            className="bg-green-600 text-white text-sm font-medium px-4 py-1.5 rounded-full leading-none"
-          >
-            +
-          </button>
-        )}
       </header>
 
       {!online && (
@@ -84,18 +65,8 @@ export default function App() {
               onCreateNew={() => setTab('neworder')}
             />
           )}
-          {tab === 'delivery' && (
-            <DeliveryPage
-              addFormOpen={deliveryAddOpen}
-              onAddFormClose={() => setDeliveryAddOpen(false)}
-            />
-          )}
-          {tab === 'writeoff' && (
-            <WriteOffPage
-              addFormOpen={writeoffAddOpen}
-              onAddFormClose={() => setWriteoffAddOpen(false)}
-            />
-          )}
+          {tab === 'delivery' && <DeliveryPage />}
+          {tab === 'writeoff' && <WriteOffPage />}
         </ErrorBoundary>
       </main>
 

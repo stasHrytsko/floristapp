@@ -23,6 +23,16 @@ export function useClients() {
     }
   }
 
+  async function addClient(name, phone) {
+    const { data, error: err } = await supabase
+      .from('clients')
+      .insert({ name: name.trim(), phone: phone?.trim() || null })
+      .select('id, name, phone')
+      .single()
+    if (err) throw err
+    setClients((prev) => [...prev, data])
+  }
+
   async function updateClient(id, newName, newPhone) {
     const trimmedName = newName.trim()
     const trimmedPhone = newPhone.trim() || null
@@ -42,5 +52,5 @@ export function useClients() {
     fetchData()
   }, [])
 
-  return { clients, loading, error, refresh: fetchData, updateClient }
+  return { clients, loading, error, refresh: fetchData, addClient, updateClient }
 }
