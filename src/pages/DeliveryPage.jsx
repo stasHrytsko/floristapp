@@ -321,7 +321,6 @@ export default function DeliveryPage() {
                 delivery={d}
                 onEdit={setEditingDelivery}
                 onDelete={deleteDelivery}
-                onRefresh={refresh}
               />
             ))}
         </>
