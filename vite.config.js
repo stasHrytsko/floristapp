@@ -8,5 +8,9 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/tests/setup.js',
     exclude: ['bot/**', 'node_modules/**'],
+    env: {
+      VITE_SUPABASE_URL: 'https://test.supabase.co',
+      VITE_SUPABASE_KEY: 'test-key',
+    },
   },
 })
