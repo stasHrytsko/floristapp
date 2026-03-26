@@ -102,7 +102,7 @@ function computeFlowerStock(db) {
     const reserved = Math.max(0, reservedRaw - sold - cancelReserve)
     // available = поставка - списание - резерв_raw + скасовані (виправлена формула)
     const available = delivered - writeoff - reservedRaw + cancelReserve
-    return { flower_id: f.id, name: f.name, total: delivered, sold, reserved, available }
+    return { flower_id: f.id, name: f.name, total: delivered, sold, reserved, available, writeoff }
   })
 }
 

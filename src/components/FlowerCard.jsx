@@ -36,21 +36,25 @@ function FlowerDetailsSheet({ flower, onClose }) {
           <button onClick={onClose} className="text-gray-400 text-lg leading-none">✕</button>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-5 gap-1.5 mb-4">
           <div className="bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-base font-bold text-gray-700">{flower.total ?? 0}</p>
-            <p className="text-xs text-gray-400 leading-tight">поставлено</p>
+            <p className="text-sm font-bold text-gray-700">{flower.total ?? 0}</p>
+            <p className="text-xs text-gray-400 leading-tight">поставл.</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-base font-bold text-blue-500">{flower.reserved ?? 0}</p>
+            <p className="text-sm font-bold text-red-500">{flower.writeoff ?? 0}</p>
+            <p className="text-xs text-gray-400 leading-tight">списано</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-2 text-center">
+            <p className="text-sm font-bold text-blue-500">{flower.reserved ?? 0}</p>
             <p className="text-xs text-gray-400 leading-tight">резерв</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-base font-bold text-purple-500">{flower.sold ?? 0}</p>
+            <p className="text-sm font-bold text-purple-500">{flower.sold ?? 0}</p>
             <p className="text-xs text-gray-400 leading-tight">продано</p>
           </div>
           <div className="bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-base font-bold text-green-600">{flower.available ?? 0}</p>
+            <p className="text-sm font-bold text-green-600">{flower.available ?? 0}</p>
             <p className="text-xs text-gray-400 leading-tight">остаток</p>
           </div>
         </div>

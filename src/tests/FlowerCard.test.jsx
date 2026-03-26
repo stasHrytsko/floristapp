@@ -59,10 +59,11 @@ describe('FlowerCard', () => {
     expect(screen.getAllByText('Роза').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('попап показывает плитки поставлено / резерв / продано / остаток', () => {
-    render(<FlowerCard flower={base} />)
+  it('попап показывает плитки поставл. / списано / резерв / продано / остаток', () => {
+    render(<FlowerCard flower={{ ...base, writeoff: 3 }} />)
     fireEvent.click(screen.getByText('Роза'))
-    expect(screen.getByText('поставлено')).toBeDefined()
+    expect(screen.getByText('поставл.')).toBeDefined()
+    expect(screen.getByText('списано')).toBeDefined()
     expect(screen.getAllByText('резерв').length).toBeGreaterThan(0)
     expect(screen.getByText('продано')).toBeDefined()
     expect(screen.getByText('остаток')).toBeDefined()
