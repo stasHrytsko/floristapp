@@ -153,10 +153,10 @@ function resolveRelations(rows, table, relDefs, db) {
         : all.filter((r) => r[relInfo.foreignKey] === row[relInfo.localKey]).slice(0, 1)
       const { fields: rFields, relations: rRels } = parseSelectCols(rel.colStr || '*')
       const includeAll = !rel.colStr || rel.colStr === '*' || rFields.length === 0
-      const projected = matched.map((r) => {
-        const base = projectRow(r, rFields, includeAll)
-        return resolveRelations([base], relInfo.table, rRels, db)[0]
-      })
+      // Сначала разрешаем вложенные связи (на полных строках), потом проецируем поля.
+      // Иначе FK-поля обрезаются до того, как успели найти связанные строки.
+      const resolved = resolveRelations(matched, relInfo.table, rRels, db)
+      const projected = resolved.map((r) => projectRow(r, rFields, includeAll))
       result[rel.name] = relInfo.type === 'many' ? projected : (projected[0] ?? null)
     }
     return result
@@ -236,8 +236,9 @@ class QueryBuilder {
         if (this._limitN) rows = rows.slice(0, this._limitN)
         const { fields, relations } = parseSelectCols(this._selectStr)
         const includeAll = this._selectStr.trim() === '*' || fields.length === 0
-        let out = rows.map((r) => projectRow(r, fields, includeAll))
-        out = resolveRelations(out, this._table, relations, db)
+        // Сначала связи (на полных строках), потом проекция полей
+        const resolved = resolveRelations(rows, this._table, relations, db)
+        const out = resolved.map((r) => projectRow(r, fields, includeAll))
         return { data: this._isSingle ? (out[0] ?? null) : out, error: null }
       }
 
@@ -249,8 +250,8 @@ class QueryBuilder {
         if (this._selectStr && this._selectStr !== '*') {
           const { fields, relations } = parseSelectCols(this._selectStr)
           const includeAll = fields.length === 0
-          let out = inserted.map((r) => projectRow(r, fields, includeAll))
-          out = resolveRelations(out, this._table, relations, db)
+          const resolved = resolveRelations(inserted, this._table, relations, db)
+          const out = resolved.map((r) => projectRow(r, fields, includeAll))
           return { data: this._isSingle ? (out[0] ?? null) : out, error: null }
         }
         return { data: this._isSingle ? (inserted[0] ?? null) : inserted, error: null }
@@ -266,8 +267,8 @@ class QueryBuilder {
         if (this._isSingle && updatedRow && this._selectStr && this._selectStr !== '*') {
           const { fields, relations } = parseSelectCols(this._selectStr)
           const includeAll = fields.length === 0
-          const out = resolveRelations([projectRow(updatedRow, fields, includeAll)], this._table, relations, db)
-          return { data: out[0] ?? null, error: null }
+          const resolved = resolveRelations([updatedRow], this._table, relations, db)
+          return { data: projectRow(resolved[0], fields, includeAll) ?? null, error: null }
         }
         return { data: updatedRow, error: null }
       }
